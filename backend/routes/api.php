@@ -15,4 +15,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
 
     route::apiResource('/users', UserController::class);
+    Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+        Route::post('/admin/users', [UserController::class, 'store']);
+    });
 });
