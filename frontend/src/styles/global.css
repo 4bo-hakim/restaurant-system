@@ -1,0 +1,15 @@
+:root {
+  --primary-red: #d21f1f;
+  --primary-red-dark: #a30000;
+  --white: #ffffff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+}
