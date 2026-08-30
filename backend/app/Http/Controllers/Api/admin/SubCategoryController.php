@@ -33,8 +33,8 @@ class SubCategoryController extends Controller
         $validated = $request->validated();
 
         $imagePath = null;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('subcategories', 'public');
+        if ($request->hasFile('image_path')) {
+            $imagePath = $request->file('image_path')->store('subcategories', 'public');
         }
 
         $subCategory = SubCategory::create([
@@ -57,12 +57,12 @@ class SubCategoryController extends Controller
 
         $validated = $request->validated();
 
-        if ($request->hasFile('image')) {
+        if ($request->hasFile('image_path')) {
             if ($subCategory->image_path && Storage::disk('public')->exists($subCategory->image_path)) {
                 Storage::disk('public')->delete($subCategory->image_path);
             }
 
-            $validated['image_path'] = $request->file('image')->store('subcategories', 'public');
+            $validated['image_path'] = $request->file('image_path')->store('subcategories', 'public');
         }
 
         $subCategory->fill($validated);

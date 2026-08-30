@@ -33,8 +33,8 @@ class FoodController extends Controller
         $validated = $request->validated();
 
         $imagePath = null;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('foods', 'public');
+        if ($request->hasFile('image_path')) {
+            $imagePath = $request->file('image_path')->store('foods', 'public');
         }
 
         $food = Food::create([
@@ -61,12 +61,12 @@ class FoodController extends Controller
 
         $validated = $request->validated();
 
-        if ($request->hasFile('image')) {
+        if ($request->hasFile('image_path')) {
             if ($food->image_path && Storage::disk('public')->exists($food->image_path)) {
                 Storage::disk('public')->delete($food->image_path);
             }
 
-            $validated['image_path'] = $request->file('image')->store('foods', 'public');
+            $validated['image_path'] = $request->file('image_path')->store('foods', 'public');
         }
 
         $food->fill($validated);

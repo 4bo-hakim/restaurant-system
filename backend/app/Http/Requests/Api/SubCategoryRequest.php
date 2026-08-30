@@ -26,7 +26,7 @@ class SubCategoryRequest extends FormRequest
                 'name.en' => 'required|string|max:255',
                 'name.ar' => 'required|string|max:255',
                 'name.ku' => 'required|string|max:255',
-                'image' => 'nullable|image|max:2048',
+                'image_path' => 'nullable|image|max:2048',
             ];
         }
 
@@ -36,7 +36,7 @@ class SubCategoryRequest extends FormRequest
             'name.en' => 'sometimes|required|string|max:255',
             'name.ar' => 'sometimes|required|string|max:255',
             'name.ku' => 'sometimes|required|string|max:255',
-            'image' => 'nullable|image|max:2048',
+            'image_path' => 'nullable|image|max:2048',
         ];
     }
 }

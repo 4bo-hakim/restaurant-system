@@ -33,7 +33,7 @@ class FoodRequest extends FormRequest
                 'size' => 'nullable|string|max:100',
                 'price' => 'required|integer|min:0',
                 'is_available' => 'nullable|boolean',
-                'image' => 'nullable|image|max:2048',
+                'image_path' => 'nullable|image|max:2048',
             ];
         }
 
@@ -50,7 +50,7 @@ class FoodRequest extends FormRequest
             'size' => 'nullable|string|max:100',
             'price' => 'sometimes|required|integer|min:0',
             'is_available' => 'nullable|boolean',
-            'image' => 'nullable|image|max:2048',
+            'image_path' => 'nullable|image|max:2048',
         ];
     }
 }
