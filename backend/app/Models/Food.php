@@ -10,7 +10,7 @@ use Spatie\Translatable\HasTranslations;
 class Food extends Model
 {
     use HasTranslations;
-
+    protected $table = 'foods';
     public array $translatable = ['name', 'description'];
 
     protected $fillable = [

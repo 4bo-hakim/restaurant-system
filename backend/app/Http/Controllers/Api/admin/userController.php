@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\UserRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -94,5 +96,16 @@ class UserController extends Controller
         $user->delete();
 
         return $this->success(null, 'User deleted successfully');
+    }
+
+    public function getRolesAndPermissions()
+    {
+        $roles = Role::pluck('name');
+        $permissions = Permission::pluck('name');
+
+        return $this->success([
+            'roles' => $roles,
+            'permissions' => $permissions,
+        ], 'Roles and permissions retrieved successfully');
     }
 }
