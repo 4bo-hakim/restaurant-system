@@ -28,11 +28,13 @@ export default function Login() {
     return items;
   }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    login(email, password);
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  const success = await login(email, password);
+  if (success) {
     navigate("/dashboard");
-  };
+  }
+};
 
   return (
     <div className="login-page">
