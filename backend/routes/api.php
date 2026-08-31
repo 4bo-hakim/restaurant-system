@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Api\Admin\CategoryController;
 use App\Http\Controllers\Api\Admin\FoodController;
+use App\Http\Controllers\Api\Admin\ReservationController;
 use App\Http\Controllers\Api\Admin\SubCategoryController;
+use App\Http\Controllers\Api\Admin\TableController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\AuthController;
 use Illuminate\Http\Request;
@@ -23,5 +25,11 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('/foods', FoodController::class);
 
     Route::apiResource('/users', UserController::class);
+
+    // Tables routes
+    Route::apiResource('/tables', TableController::class);
+    // Reservations routes
+    Route::apiResource('/reservations', ReservationController::class);
+
     Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {});
 });
