@@ -11,11 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tables', function (Blueprint $table) {
-            $table->id();
-            $table->string('table_number');
-            $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
-            $table->timestamps();
+        Schema::table('tables', function (Blueprint $table) {
+            $table->dropColumn('qr_token');
         });
     }
 
@@ -24,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tables');
+        Schema::table('tables', function (Blueprint $table) {
+            $table->string('qr_token')->unique();
+        });
     }
 };
