@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./AuthContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import CaptainPage from "./pages/CaptainPage";
+import WaiterPage from "./pages/WaiterPage";
 import ChefPage from "./pages/ChefPage";
 import CashierPage from "./pages/CashierPage";
 import AdminPage from "./pages/AdminPage";
@@ -16,8 +16,8 @@ function App() {
           <Route path="/" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route
-            path="/captain"
-            element={<ProtectedRoute allowedRole="captain"><CaptainPage /></ProtectedRoute>}
+            path="/waiter"
+            element={<ProtectedRoute allowedRole="waiter"><WaiterPage /></ProtectedRoute>}
           />
           <Route
             path="/chef"
