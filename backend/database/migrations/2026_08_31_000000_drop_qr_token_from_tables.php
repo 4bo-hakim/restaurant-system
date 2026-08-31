@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (! Schema::hasColumn('tables', 'qr_token')) {
+            return;
+        }
+
         Schema::table('tables', function (Blueprint $table) {
             $table->dropColumn('qr_token');
         });

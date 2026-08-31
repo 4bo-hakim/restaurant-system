@@ -50,6 +50,20 @@ class InvoiceFoodController extends Controller
             return $this->error('This food item is currently unavailable', 409);
         }
 
+        $existingInvoiceFood = InvoiceFood::where('invoice_id', $invoice->id)
+            ->where('food_id', $food->id)
+            ->where('person_number', $validated['person_number'])
+            ->whereIn('status', ['pending', 'preparing', 'ready', 'served'])
+            ->first();
+
+        if ($existingInvoiceFood) {
+            $existingInvoiceFood->quantity += $validated['quantity'];
+            $existingInvoiceFood->note = $validated['note'] ?? $existingInvoiceFood->note;
+            $existingInvoiceFood->save();
+
+            return $this->success($existingInvoiceFood->fresh()->load('food'), 'Invoice item updated successfully');
+        }
+
         $invoiceFood = InvoiceFood::create([
             'invoice_id' => $invoice->id,
             'food_id' => $food->id,
@@ -71,6 +85,10 @@ class InvoiceFoodController extends Controller
             return $this->error('Invoice not found', 404);
         }
 
+        if ($invoice->status !== 'pending') {
+            return $this->error('Cannot modify items on a completed or cancelled invoice', 409);
+        }
+
         $invoiceFood = InvoiceFood::where('invoice_id', $invoiceId)
             ->where('id', $foodItemId)
             ->first();
@@ -81,7 +99,7 @@ class InvoiceFoodController extends Controller
 
         $validated = $request->validate([
             'quantity' => 'sometimes|integer|min:1',
-            'status' => 'sometimes|string|in:pending,cancelled',
+            'status' => 'sometimes|string|in:pending,preparing,ready,served,cancelled',
             'note' => 'nullable|string',
         ]);
 
@@ -96,6 +114,10 @@ class InvoiceFoodController extends Controller
 
         if (!$invoice) {
             return $this->error('Invoice not found', 404);
+        }
+
+        if ($invoice->status !== 'pending') {
+            return $this->error('Cannot modify items on a completed or cancelled invoice', 409);
         }
 
         $invoiceFood = InvoiceFood::where('invoice_id', $invoiceId)
