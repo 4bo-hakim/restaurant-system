@@ -23,7 +23,5 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('/foods', FoodController::class);
 
     Route::apiResource('/users', UserController::class);
-    Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
-        Route::post('/admin/users', [UserController::class, 'store']);
-    });
+    Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {});
 });

@@ -34,7 +34,7 @@ class userRequest extends FormRequest
         } elseif ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
             return [
                 'name' => 'sometimes|required|string|max:255',
-                'email' => 'sometimes|required|email|unique:users,email,' . $this->route('id'),
+                'email' => 'sometimes|required|email|unique:users,email,' . $this->route('user'),
                 'password' => 'sometimes|required|string|min:8|confirmed',
                 'role' => 'sometimes|required|string|exists:roles,name',
                 'permissions' => 'sometimes|array',
