@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\UserRequest;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -93,7 +94,15 @@ class UserController extends Controller
             return $this->error('User not found', 404);
         }
 
-        $user->delete();
+        try {
+            $user->delete();
+        } catch (QueryException $e) {
+            if ($e->getCode() == '23000' || str_contains($e->getMessage(), 'FOREIGN KEY') || str_contains($e->getMessage(), 'constraint')) {
+                return $this->error('Cannot delete user because related records still exist', 409);
+            }
+
+            throw $e;
+        }
 
         return $this->success(null, 'User deleted successfully');
     }

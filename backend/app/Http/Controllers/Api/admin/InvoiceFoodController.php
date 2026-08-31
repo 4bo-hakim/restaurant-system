@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Food;
 use App\Models\Invoice;
 use App\Models\InvoiceFood;
 use Illuminate\Http\Request;
@@ -22,6 +23,44 @@ class InvoiceFoodController extends Controller
             ->get();
 
         return $this->success($invoiceFoods, 'Invoice items retrieved successfully');
+    }
+
+    public function store(Request $request, $invoiceId)
+    {
+        $invoice = Invoice::find($invoiceId);
+
+        if (!$invoice) {
+            return $this->error('Invoice not found', 404);
+        }
+
+        if ($invoice->status !== 'pending') {
+            return $this->error('Cannot add items to a completed or cancelled invoice', 409);
+        }
+
+        $validated = $request->validate([
+            'food_id' => 'required|integer|exists:foods,id',
+            'person_number' => 'required|integer|min:1|max:8',
+            'quantity' => 'required|integer|min:1',
+            'note' => 'nullable|string',
+        ]);
+
+        $food = Food::find($validated['food_id']);
+
+        if (!$food || !$food->is_available) {
+            return $this->error('This food item is currently unavailable', 409);
+        }
+
+        $invoiceFood = InvoiceFood::create([
+            'invoice_id' => $invoice->id,
+            'food_id' => $food->id,
+            'person_number' => $validated['person_number'],
+            'quantity' => $validated['quantity'],
+            'unit_price' => $food->price,
+            'status' => 'pending',
+            'note' => $validated['note'] ?? null,
+        ]);
+
+        return $this->success($invoiceFood->load('food'), 'Item added to invoice successfully', 201);
     }
 
     public function update(Request $request, $invoiceId, $foodItemId)
@@ -67,7 +106,6 @@ class InvoiceFoodController extends Controller
             return $this->error('Invoice item not found', 404);
         }
 
-        // Soft delete by changing status to cancelled
         $invoiceFood->update(['status' => 'cancelled']);
 
         return $this->success(null, 'Invoice item cancelled successfully');

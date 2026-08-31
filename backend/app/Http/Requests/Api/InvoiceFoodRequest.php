@@ -22,10 +22,19 @@ class InvoiceFoodRequest extends FormRequest
      */
     public function rules(): array
     {
+        if ($this->isMethod('post')) {
+            return [
+                'food_id' => 'required|integer|exists:foods,id',
+                'person_number' => 'required|integer|min:1|max:8',
+                'quantity' => 'required|integer|min:1',
+                'note' => 'nullable|string',
+            ];
+        }
+
         return [
-            'food_id' => 'required|integer|exists:foods,id',
-            'person_number' => 'required|integer|min:1|max:8',
-            'quantity' => 'required|integer|min:1',
+            'food_id' => 'sometimes|required|integer|exists:foods,id',
+            'person_number' => 'sometimes|required|integer|min:1|max:8',
+            'quantity' => 'sometimes|required|integer|min:1',
             'note' => 'nullable|string',
         ];
     }
