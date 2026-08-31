@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\Admin\CategoryController;
 use App\Http\Controllers\Api\Admin\FoodController;
+use App\Http\Controllers\Api\Admin\InvoiceController;
+use App\Http\Controllers\Api\Admin\InvoiceFoodController;
 use App\Http\Controllers\Api\Admin\ReservationController;
 use App\Http\Controllers\Api\Admin\SubCategoryController;
 use App\Http\Controllers\Api\Admin\TableController;
@@ -28,8 +30,21 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
 
     // Tables routes
     Route::apiResource('/tables', TableController::class);
+    
     // Reservations routes
     Route::apiResource('/reservations', ReservationController::class);
+
+    // Invoices routes
+    Route::get('/invoices', [InvoiceController::class, 'index']);
+    Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
+    Route::post('/invoices', [InvoiceController::class, 'store'])->middleware('permission:create_invoice');
+    Route::put('/invoices/{invoice}', [InvoiceController::class, 'update'])->middleware('permission:update_invoice');
+    Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->middleware('permission:cancel_invoice');
+
+    // Invoice Food routes (nested under invoices) - only for viewing and modifying existing items
+    Route::get('/invoices/{invoice}/food', [InvoiceFoodController::class, 'index']);
+    Route::put('/invoices/{invoice}/food/{foodItem}', [InvoiceFoodController::class, 'update'])->middleware('permission:update_invoice_food_status');
+    Route::delete('/invoices/{invoice}/food/{foodItem}', [InvoiceFoodController::class, 'destroy'])->middleware('permission:update_invoice_food_status');
 
     Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {});
 });
