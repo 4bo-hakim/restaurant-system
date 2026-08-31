@@ -29,10 +29,10 @@ export function AuthProvider({ children }) {
       const userData = await userRes.json();
 
       // 3. TEMPORARY: fake role from email until backend adds real role field
-      let role = "captain";
-      if (email.includes("chef")) role = "chef";
-      else if (email.includes("cashier")) role = "cashier";
-      else if (email.includes("admin")) role = "admin";
+         let role = "waiter";
+        if (email.includes("chef")) role = "chef";
+        else if (email.includes("cashier")) role = "cashier";
+        else if (email.includes("admin")) role = "admin";
 
       setUser({
         id: userData.id,
