@@ -12,6 +12,8 @@ export default function FoodsSection({ authHeaders }) {
     description_en: "", description_ar: "", description_ku: "",
     size: "", price: "", is_available: true, sub_category_id: "",
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [editingId, setEditingId] = useState(null);
 
   const fetchData = async () => {
@@ -47,6 +49,16 @@ export default function FoodsSection({ authHeaders }) {
       sub_category_id: subCategories[0]?.id || "",
     });
     setEditingId(null);
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -64,6 +76,9 @@ export default function FoodsSection({ authHeaders }) {
       formData.append("price", form.price);
       formData.append("is_available", form.is_available ? "1" : "0");
       formData.append("sub_category_id", form.sub_category_id);
+      if (imageFile) {
+        formData.append("image_path", imageFile);
+      }
 
       let url = `${API_BASE}/admin/foods`;
       if (editingId) {
@@ -91,6 +106,8 @@ export default function FoodsSection({ authHeaders }) {
       size: f.size || "", price: f.price || "",
       is_available: !!f.is_available, sub_category_id: f.sub_category_id,
     });
+    setImageFile(null);
+    setImagePreview(f.image_path ? `http://127.0.0.1:8000/storage/${f.image_path}` : null);
   };
 
   const handleDelete = async (id) => {
@@ -141,11 +158,29 @@ export default function FoodsSection({ authHeaders }) {
           <input placeholder="Size (optional)" value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
           <input type="number" placeholder="Price" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
         </div>
+
         <div className="admin-form-row">
           <label className="permission-checkbox" style={{ flex: 1 }}>
             <input type="checkbox" checked={form.is_available} onChange={(e) => setForm({ ...form, is_available: e.target.checked })} />
             Available
           </label>
+        </div>
+
+        <div className="admin-form-row">
+          <div>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml"
+              onChange={handleImageChange}
+            />
+            {imagePreview && (
+              <img
+                src={imagePreview}
+                alt="Preview"
+                style={{ maxWidth: 120, maxHeight: 120, marginTop: 8, borderRadius: 8, display: "block" }}
+              />
+            )}
+          </div>
         </div>
 
         <div className="admin-form-actions">
@@ -160,10 +195,23 @@ export default function FoodsSection({ authHeaders }) {
       ) : (
         <div className="admin-table-wrapper">
           <table className="admin-table">
-            <thead><tr><th>Name (EN)</th><th>Sub-category</th><th>Price</th><th>Available</th><th>Actions</th></tr></thead>
+            <thead>
+              <tr><th>Image</th><th>Name (EN)</th><th>Sub-category</th><th>Price</th><th>Available</th><th>Actions</th></tr>
+            </thead>
             <tbody>
               {foods.map((f) => (
                 <tr key={f.id}>
+                  <td>
+                    {f.image_path ? (
+                      <img
+                        src={`http://127.0.0.1:8000/storage/${f.image_path}`}
+                        alt=""
+                        style={{ width: 50, height: 50, objectFit: "cover", borderRadius: 6 }}
+                      />
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                   <td>{f.name?.en || "-"}</td>
                   <td>{f.sub_category?.name?.en || subCategoryName(f.sub_category_id)}</td>
                   <td>{f.price}</td>
