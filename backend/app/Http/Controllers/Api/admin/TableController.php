@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\TableRequest;
 use App\Models\RestaurantTable;
 use Illuminate\Database\QueryException;
+use Carbon\Carbon;
 
 class TableController extends Controller
 {
@@ -14,6 +15,58 @@ class TableController extends Controller
         $tables = RestaurantTable::all();
 
         return $this->success($tables, 'Tables retrieved successfully');
+    }
+
+    public function availability()
+    {
+        $tables = RestaurantTable::with(['invoices' => function ($query) {
+            $query->where('status', 'pending');
+        }, 'reservations' => function ($query) {
+            $query->whereIn('status', ['pending', 'confirmed']);
+        }])->get();
+
+        $now = Carbon::now();
+
+        $availability = $tables->map(function ($table) use ($now) {
+            // Check if table has pending invoice (occupied)
+            $hasPendingInvoice = $table->invoices->isNotEmpty();
+
+            // Check if table has active reservation (reserved)
+            $activeReservation = $table->reservations->first(function ($reservation) use ($now) {
+                return $reservation->reservation_at <= $now && $reservation->reservation_end >= $now;
+            });
+
+            if ($hasPendingInvoice) {
+                $status = 'occupied';
+            } elseif ($activeReservation) {
+                $status = 'reserved';
+            } else {
+                $status = 'available';
+            }
+
+            // Get next upcoming reservation
+            $nextReservation = $table->reservations
+                ->filter(function ($reservation) use ($now) {
+                    return $reservation->reservation_at > $now;
+                })
+                ->sortBy('reservation_at')
+                ->first();
+
+            $nextReservationData = $nextReservation ? [
+                'reservation_at' => $nextReservation->reservation_at,
+                'name' => $nextReservation->name,
+                'guest_count' => $nextReservation->guest_count,
+            ] : null;
+
+            return [
+                'id' => $table->id,
+                'table_number' => $table->table_number,
+                'status' => $status,
+                'next_reservation' => $nextReservationData,
+            ];
+        });
+
+        return $this->success($availability, 'Table availability retrieved successfully');
     }
 
     public function show($id)

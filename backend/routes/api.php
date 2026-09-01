@@ -52,6 +52,7 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
 
     // Tables routes
     Route::get('/tables', [TableController::class, 'index']);
+    Route::get('/tables/availability', [TableController::class, 'availability']);
     Route::get('/tables/{table}', [TableController::class, 'show']);
     Route::post('/tables', [TableController::class, 'store'])->middleware('permission:create_table');
     Route::put('/tables/{table}', [TableController::class, 'update'])->middleware('permission:update_table');
@@ -74,6 +75,8 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
     // Invoice Food routes (nested under invoices)
     Route::get('/invoices/{invoice}/food', [InvoiceFoodController::class, 'index']);
     Route::post('/invoices/{invoice}/food', [InvoiceFoodController::class, 'store'])->middleware('permission:create_invoice');
-    Route::put('/invoices/{invoice}/food/{foodItem}', [InvoiceFoodController::class, 'update'])->middleware('permission:update_invoice_food_status');
-    Route::delete('/invoices/{invoice}/food/{foodItem}', [InvoiceFoodController::class, 'destroy'])->middleware('permission:update_invoice_food_status');
+    Route::put('/invoices/{invoice}/food/{foodItem}', [InvoiceFoodController::class, 'update'])->middleware('permission:update_invoice_item');
+    Route::patch('/invoices/{invoice}/food/{foodItem}/quantity', [InvoiceFoodController::class, 'adjustQuantity'])->middleware('permission:update_invoice_item');
+    Route::patch('/invoices/{invoice}/food/{foodItem}/status', [InvoiceFoodController::class, 'updateStatus'])->middleware('permission:update_invoice_food_status');
+    Route::delete('/invoices/{invoice}/food/{foodItem}', [InvoiceFoodController::class, 'destroy'])->middleware('permission:update_invoice_item');
 });
