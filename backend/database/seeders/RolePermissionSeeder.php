@@ -30,6 +30,7 @@ class RolePermissionSeeder extends Seeder
             'create_invoice',
             'update_invoice',
             'cancel_invoice',
+            'update_invoice_item',
             'update_invoice_food_status',
             'create_user',
             'update_user',
@@ -68,6 +69,7 @@ class RolePermissionSeeder extends Seeder
             'manage_reservations',
             'create_invoice',
             'create_table',
+            'update_invoice_item',
         ]);
 
         $chef->syncPermissions([

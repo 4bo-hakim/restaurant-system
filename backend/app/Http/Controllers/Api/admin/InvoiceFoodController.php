@@ -21,7 +21,6 @@ class InvoiceFoodController extends Controller
         $invoiceFoods = InvoiceFood::where('invoice_id', $invoiceId)
             ->with('food')
             ->get();
-
         return $this->success($invoiceFoods, 'Invoice items retrieved successfully');
     }
 
@@ -77,7 +76,59 @@ class InvoiceFoodController extends Controller
         return $this->success($invoiceFood->load('food'), 'Item added to invoice successfully', 201);
     }
 
-    public function update(Request $request, $invoiceId, $foodItemId)
+    public function update(Request $request, int  $invoiceId, int $foodItemId)
+    {
+        $invoice = Invoice::find($invoiceId);
+        if (!$invoice) {
+            return $this->error('Invoice not found', 404);
+        }
+
+        if ($invoice->status !== 'pending') {
+            return $this->error('Cannot modify items on a completed or cancelled invoice', 409);
+        }
+
+        $invoiceFood = InvoiceFood::where('invoice_id', $invoiceId)
+            ->where('id', $foodItemId)->first();
+
+        if (!$invoiceFood) {
+            return $this->error('Invoice item not found', 404);
+        }
+
+        $validated = $request->validate([
+            'quantity' => 'sometimes|integer|min:1',
+            'delta' => 'sometimes|integer',
+            'note' => 'nullable|string',
+        ]);
+
+        if (isset($validated['quantity']) && isset($validated['delta'])) {
+            return $this->error('Use either quantity or delta, not both.', 422);
+        }
+
+        if (isset($validated['delta'])) {
+            $newQuantity = $invoiceFood->quantity + $validated['delta'];
+
+            if ($newQuantity < 1) {
+                return $this->error('Quantity cannot be less than 1.', 422);
+            }
+
+            $invoiceFood->quantity = $newQuantity;
+            unset($validated['delta']);
+        }
+
+        if (isset($validated['quantity'])) {
+            $invoiceFood->quantity = $validated['quantity'];
+        }
+
+        if (isset($validated['note'])) {
+            $invoiceFood->note = $validated['note'];
+        }
+
+        $invoiceFood->save();
+
+        return $this->success($invoiceFood->fresh()->load('food'), 'Invoice item updated successfully');
+    }
+
+    public function adjustQuantity(Request $request, $invoiceId, $foodItemId)
     {
         $invoice = Invoice::find($invoiceId);
 
@@ -98,14 +149,48 @@ class InvoiceFoodController extends Controller
         }
 
         $validated = $request->validate([
-            'quantity' => 'sometimes|integer|min:1',
-            'status' => 'sometimes|string|in:pending,preparing,ready,served,cancelled',
-            'note' => 'nullable|string',
+            'delta' => 'required|integer',
+        ]);
+
+        $newQuantity = $invoiceFood->quantity + $validated['delta'];
+
+        if ($newQuantity < 1) {
+            return $this->error('Quantity cannot be less than 1.', 422);
+        }
+
+        $invoiceFood->quantity = $newQuantity;
+        $invoiceFood->save();
+
+        return $this->success($invoiceFood->fresh()->load('food'), 'Invoice item quantity updated successfully');
+    }
+
+    public function updateStatus(Request $request, $invoiceId, $foodItemId)
+    {
+        $invoice = Invoice::find($invoiceId);
+
+        if (!$invoice) {
+            return $this->error('Invoice not found', 404);
+        }
+
+        if ($invoice->status !== 'pending') {
+            return $this->error('Cannot modify items on a completed or cancelled invoice', 409);
+        }
+
+        $invoiceFood = InvoiceFood::where('invoice_id', $invoiceId)
+            ->where('id', $foodItemId)
+            ->first();
+
+        if (!$invoiceFood) {
+            return $this->error('Invoice item not found', 404);
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|string|in:pending,preparing,ready,served,cancelled',
         ]);
 
         $invoiceFood->update($validated);
 
-        return $this->success($invoiceFood->load('food'), 'Invoice item updated successfully');
+        return $this->success($invoiceFood->load('food'), 'Invoice item status updated successfully');
     }
 
     public function destroy($invoiceId, $foodItemId)

@@ -63,6 +63,7 @@ class InvoiceFlowTest extends TestCase
         $permissions = [
             'create_invoice',
             'update_invoice',
+            'update_invoice_item',
             'cancel_invoice',
             'update_invoice_food_status',
             'manage_reservations',
@@ -138,6 +139,75 @@ class InvoiceFlowTest extends TestCase
         $this->assertDatabaseCount('invoice_food', 1);
         $this->assertSame(5, InvoiceFood::first()->quantity);
         $this->assertSame(125, Invoice::find($invoice->id)->total);
+    }
+
+    public function test_it_updates_invoice_item_quantity_using_delta_and_exact_value(): void
+    {
+        $this->actingAs($this->admin, 'sanctum');
+
+        $invoice = Invoice::create([
+            'table_id' => $this->table->id,
+            'created_by' => $this->admin->id,
+            'status' => 'pending',
+            'discount' => 0,
+            'total' => 0,
+        ]);
+
+        $item = InvoiceFood::create([
+            'invoice_id' => $invoice->id,
+            'food_id' => $this->food->id,
+            'person_number' => 1,
+            'quantity' => 7,
+            'unit_price' => $this->food->price,
+            'status' => 'pending',
+        ]);
+
+        $this->putJson('/api/admin/invoices/' . $invoice->id . '/food/' . $item->id, [
+            'delta' => 1,
+        ])->assertStatus(200)
+            ->assertJsonPath('data.quantity', 8);
+
+        $this->putJson('/api/admin/invoices/' . $invoice->id . '/food/' . $item->id, [
+            'quantity' => 6,
+        ])->assertStatus(200)
+            ->assertJsonPath('data.quantity', 6);
+
+        $this->assertSame(6, $item->fresh()->quantity);
+        $this->assertSame(150, $invoice->fresh()->total);
+    }
+
+    public function test_it_allows_quantity_delta_updates_on_a_specific_invoice_item(): void
+    {
+        $this->actingAs($this->admin, 'sanctum');
+
+        $invoice = Invoice::create([
+            'table_id' => $this->table->id,
+            'created_by' => $this->admin->id,
+            'status' => 'pending',
+            'discount' => 0,
+            'total' => 0,
+        ]);
+
+        $item = InvoiceFood::create([
+            'invoice_id' => $invoice->id,
+            'food_id' => $this->food->id,
+            'person_number' => 1,
+            'quantity' => 7,
+            'unit_price' => $this->food->price,
+            'status' => 'pending',
+        ]);
+
+        $this->patchJson('/api/admin/invoices/' . $invoice->id . '/food/' . $item->id . '/quantity', [
+            'delta' => 1,
+        ])->assertStatus(200)
+            ->assertJsonPath('data.quantity', 8);
+
+        $this->patchJson('/api/admin/invoices/' . $invoice->id . '/food/' . $item->id . '/quantity', [
+            'delta' => -1,
+        ])->assertStatus(200)
+            ->assertJsonPath('data.quantity', 7);
+
+        $this->assertSame(7, $item->fresh()->quantity);
     }
 
     public function test_it_rejects_adding_items_to_a_completed_invoice(): void
