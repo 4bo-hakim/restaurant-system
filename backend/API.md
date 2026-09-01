@@ -52,8 +52,31 @@ All responses follow this envelope structure:
 
 - `admin` - Full system access
 - `cashier` - Invoice and payment management
-- `waiter` - Table and reservation management
-- `chef` - Food preparation and inventory
+- `waiter` - Table, reservation, and order-taking workflow
+- `chef` - Food preparation and cooking status updates
+
+### Waiter Role Workflow
+
+The waiter role is designed for table-service operations and order taking. A waiter can perform the following actions:
+
+- View table availability: `GET /admin/tables/availability`
+- Create reservations: `POST /admin/reservations`
+- Create a pending invoice for a table: `POST /admin/invoices`
+- Add food items to an invoice: `POST /admin/invoices/{invoice}/food`
+- Merge the same food for the same person_number on the same invoice: same `POST` route
+- View a specific invoice and its total: `GET /admin/invoices/{invoice}`
+- Update an existing item quantity or note: `PUT /admin/invoices/{invoice}/food/{foodItem}`
+- Increase or decrease quantity with delta logic: `PATCH /admin/invoices/{invoice}/food/{foodItem}/quantity`
+- Cancel an invoice item: `DELETE /admin/invoices/{invoice}/food/{foodItem}`
+
+The waiter is explicitly forbidden from:
+
+- Changing food preparation status: `PATCH /admin/invoices/{invoice}/food/{foodItem}/status`
+- Creating categories: `POST /admin/categories`
+- Creating users: `POST /admin/users`
+- Deleting foods: `DELETE /admin/foods/{id}`
+
+**Waiter permissions in this system:** `manage_reservations`, `create_invoice`, `update_invoice_item`
 
 ### CORS Configuration
 
@@ -1811,14 +1834,14 @@ Retrieves all food items in a specific invoice with food details.
 
 ---
 
-### 2. Update Invoice Item
+### 2. Update Invoice Item Quantity / Note
 
 **PUT** `/admin/invoices/{invoice}/food/{foodItem}`
 
-Updates an invoice food item's quantity, status, or note.
+Updates an existing invoice food item's quantity and/or note.
 
 **Authentication:** Required (Bearer token)  
-**Permission:** `update_invoice_food_status`
+**Permission:** `update_invoice_item`
 
 **Path Parameters:**
 | Parameter | Type | Required |
@@ -1829,15 +1852,14 @@ Updates an invoice food item's quantity, status, or note.
 **Request Body:**
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| quantity | integer | No | New quantity, min 1 |
-| status | string | No | pending or cancelled |
+| quantity | integer | No | Exact new quantity, min 1 |
 | note | string | No | Special instructions |
 
 **Important Business Logic:**
 
 - `unit_price` is IMMUTABLE - it was captured at creation time and cannot be changed
 - Changing quantity triggers automatic invoice total recalculation via Observer
-- Setting status to 'cancelled' excludes the item from the total calculation
+- This is the endpoint used by the waiter to adjust item quantity in the order window
 - Total formula: `SUM(unit_price × quantity)` for items where `status != 'cancelled'`, minus discount
 
 **Success Response (200):**
@@ -1874,14 +1896,111 @@ Updates an invoice food item's quantity, status, or note.
 
 ---
 
-### 3. Cancel Invoice Item
+### 3. Delta Quantity Adjustment (Plus / Minus)
+
+**PATCH** `/admin/invoices/{invoice}/food/{foodItem}/quantity`
+
+Adjusts quantity by a signed delta value. This is the backend endpoint for a plus/minus button in the waiter order UI.
+
+**Authentication:** Required (Bearer token)  
+**Permission:** `update_invoice_item`
+
+**Path Parameters:**
+| Parameter | Type | Required |
+|-----------|------|----------|
+| invoice | integer | Yes | Invoice ID |
+| foodItem | integer | Yes | Invoice food item ID |
+
+**Request Body:**
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| delta | integer | Yes | +1 for increase, -1 for decrease |
+
+**Important Business Logic:**
+
+- Quantity cannot go below 1
+- This is the dedicated action for plus/minus button behavior
+- The invoice total is recalculated automatically after the update
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Invoice item quantity updated successfully",
+  "data": {
+    "id": 20,
+    "invoice_id": 10,
+    "food_id": 1,
+    "person_number": 1,
+    "quantity": 8,
+    "unit_price": 10000,
+    "status": "pending",
+    "note": null,
+    "created_at": "2026-08-31T16:00:00.000000Z",
+    "updated_at": "2026-08-31T16:15:00.000000Z",
+    "food": {...}
+  }
+}
+```
+
+**Error Response (422):**
+
+```json
+{
+    "success": false,
+    "message": "Quantity cannot be less than 1.",
+    "errors": null
+}
+```
+
+---
+
+### 4. Change Food Status
+
+**PATCH** `/admin/invoices/{invoice}/food/{foodItem}/status`
+
+Updates the kitchen preparation status of an invoice food item.
+
+**Authentication:** Required (Bearer token)  
+**Permission:** `update_invoice_food_status`
+
+**Important Business Logic:**
+
+- This action is reserved for the chef role
+- Waiters do not have this permission and receive `403 Forbidden`
+- Allowed statuses: `pending`, `preparing`, `ready`, `served`, `cancelled`
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Invoice item status updated successfully",
+  "data": {...}
+}
+```
+
+**Error Response (403):**
+
+```json
+{
+    "success": false,
+    "message": "You do not have permission to update food status.",
+    "errors": null
+}
+```
+
+---
+
+### 5. Cancel Invoice Item
 
 **DELETE** `/admin/invoices/{invoice}/food/{foodItem}`
 
 Cancels (soft deletes) a food item from an invoice.
 
 **Authentication:** Required (Bearer token)  
-**Permission:** `update_invoice_food_status`
+**Permission:** `update_invoice_item`
 
 **Path Parameters:**
 | Parameter | Type | Required |

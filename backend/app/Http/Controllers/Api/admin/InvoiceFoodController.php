@@ -166,6 +166,10 @@ class InvoiceFoodController extends Controller
 
     public function updateStatus(Request $request, $invoiceId, $foodItemId)
     {
+        if (!auth()->user()?->can('update_invoice_food_status')) {
+            return $this->error('You do not have permission to update food status.', 403);
+        }
+
         $invoice = Invoice::find($invoiceId);
 
         if (!$invoice) {
