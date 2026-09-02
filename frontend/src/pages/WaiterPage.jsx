@@ -4,6 +4,7 @@ import "../styles/WaiterPage.css";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 const PERSON_COUNT = 8;
+const STAGE_ORDER = ["pending", "preparing", "ready"];
 
 const getLocalized = (field) => {
   if (!field) return "";
@@ -28,7 +29,7 @@ export default function WaiterPage() {
   const [invoicesByTable, setInvoicesByTable] = useState({});
   const currentInvoice = invoicesByTable[selectedTable] || null;
 
-  const [tableStatus, setTableStatus] = useState({});
+  const [tableStatus, setTableStatus] = useState({}); // { [tableId]: 'pending' | 'preparing' | 'ready' }
 
   const [sentItems, setSentItems] = useState([]);
   const [cartsByTable, setCartsByTable] = useState({});
@@ -64,9 +65,15 @@ export default function WaiterPage() {
       const data = await res.json();
       const statusMap = {};
       (data.data || []).forEach((inv) => {
-        if (inv.status === "pending") {
-          statusMap[inv.table_id] = "pending";
-        }
+        if (inv.status !== "pending") return;
+        const items = (inv.invoice_foods || []).filter((f) => f.status !== "cancelled" && f.status !== "served");
+        if (items.length === 0) return;
+        let lowestIndex = STAGE_ORDER.length - 1;
+        items.forEach((item) => {
+          const idx = STAGE_ORDER.indexOf(item.status);
+          if (idx !== -1 && idx < lowestIndex) lowestIndex = idx;
+        });
+        statusMap[inv.table_id] = STAGE_ORDER[lowestIndex];
       });
       setTableStatus(statusMap);
     } catch {
@@ -75,14 +82,16 @@ export default function WaiterPage() {
   };
 
   useEffect(() => {
-    if (step === "tables") {
-      refreshTableStatuses();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  if (step !== "tables") return;
+  refreshTableStatuses();
+  const interval = setInterval(refreshTableStatuses, 5000); // live update every 5s
+  return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [step]);
 
   useEffect(() => {
     if (step !== "menu") return;
+
     const fetchMenuData = async () => {
       setError("");
       try {
@@ -102,7 +111,21 @@ export default function WaiterPage() {
         setError(err.message);
       }
     };
+
+    const refreshFoodsOnly = async () => {
+      try {
+        const foodRes = await fetch(`${API_BASE}/admin/foods`, { headers: authHeaders });
+        if (!foodRes.ok) return;
+        const foodData = await foodRes.json();
+        setFoods(foodData.data || []);
+      } catch {
+        // silently ignore
+      }
+    };
+
     fetchMenuData();
+    const interval = setInterval(refreshFoodsOnly, 10000);
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
@@ -275,10 +298,10 @@ export default function WaiterPage() {
       const refreshed = await fetch(`${API_BASE}/admin/invoices/${invoiceId}`, { headers: authHeaders });
       const refreshedData = await refreshed.json();
       setInvoicesByTable((prev) => ({ ...prev, [selectedTable]: refreshedData.data }));
-      setTableStatus((prev) => ({ ...prev, [selectedTable]: "pending" }));
 
       await loadSentItems(invoiceId);
       setCartsByTable((prev) => ({ ...prev, [selectedTable]: [] }));
+      refreshTableStatuses();
       alert("Order updated!");
     } catch (err) {
       setError(err.message);
@@ -297,7 +320,7 @@ export default function WaiterPage() {
             {tables.map((t) => (
               <button
                 key={t.id}
-                className={`grid-box ${tableStatus[t.id] === "pending" ? "grid-box-pending" : ""}`}
+                className={`grid-box ${tableStatus[t.id] ? `grid-box-${tableStatus[t.id]}` : ""}`}
                 onClick={() => {
                   setSelectedTable(t.id);
                   setStep("menu");

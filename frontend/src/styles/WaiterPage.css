@@ -80,16 +80,42 @@
   color: var(--white);
 }
 
+.grid-box-preparing {
+  border-color: #2980b9;
+  color: #1c5c85;
+  animation: pulse-preparing 1.6s ease-in-out infinite;
+}
+
+.grid-box-preparing:hover {
+  color: var(--white);
+}
+
+.grid-box-ready {
+  border-color: #27ae60;
+  color: #1a6b3e;
+  animation: pulse-ready 1.6s ease-in-out infinite;
+}
+
+.grid-box-ready:hover {
+  color: var(--white);
+}
+
 @keyframes pulse-pending {
-  0% {
-    background-color: #fff3e0;
-  }
-  50% {
-    background-color: #ffb84d;
-  }
-  100% {
-    background-color: #fff3e0;
-  }
+  0% { background-color: #fff3e0; }
+  50% { background-color: #ffb84d; }
+  100% { background-color: #fff3e0; }
+}
+
+@keyframes pulse-preparing {
+  0% { background-color: #e8f2fb; }
+  50% { background-color: #7fb8e0; }
+  100% { background-color: #e8f2fb; }
+}
+
+@keyframes pulse-ready {
+  0% { background-color: #e8f8ee; }
+  50% { background-color: #7fd9a0; }
+  100% { background-color: #e8f8ee; }
 }
 
 .person-selector {
