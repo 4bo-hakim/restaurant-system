@@ -78,6 +78,91 @@ The waiter is explicitly forbidden from:
 
 **Waiter permissions in this system:** `manage_reservations`, `create_invoice`, `update_invoice_item`
 
+### Chef Role Workflow
+
+The chef role is designed for kitchen operations. A chef can:
+
+- View all invoices and their food items: `GET /admin/invoices`
+- View one invoice with its table, invoice items, and food details: `GET /admin/invoices/{invoice}`
+- View the items for one invoice: `GET /admin/invoices/{invoice}/food`
+- Update an item's preparation status: `PATCH /admin/invoices/{invoice}/food/{foodItem}/status`
+- Progress an item through `pending` -> `preparing` -> `ready` -> `served`
+- Mark a menu food item available or unavailable: `PUT /admin/foods/{food}`
+
+**Chef permissions in this system:** `update_invoice_food_status`, `update_food`
+
+#### Chef: Update Food Preparation Status
+
+**PATCH** `/admin/invoices/{invoice}/food/{foodItem}/status`
+
+Updates the preparation status of one food item on a pending invoice.
+
+**Authentication:** Required (Bearer token)
+**Permission:** `update_invoice_food_status` (assigned to the `chef` role)
+
+**Request Body:**
+
+```json
+{
+    "status": "preparing"
+}
+```
+
+Allowed values are `pending`, `preparing`, `ready`, `served`, and `cancelled`. The normal chef workflow is `pending` -> `preparing` -> `ready` -> `served`.
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Invoice item status updated successfully",
+  "data": {
+    "id": 20,
+    "invoice_id": 10,
+    "food_id": 1,
+    "quantity": 2,
+    "status": "preparing",
+    "food": {...}
+  }
+}
+```
+
+**Error Responses:** `403 Forbidden` without `update_invoice_food_status`, `404 Not Found` for a missing invoice or item, `409 Conflict` for a completed or cancelled invoice, and `422 Unprocessable Entity` for an invalid status.
+
+#### Chef: Update Food Availability
+
+**PUT** `/admin/foods/{food}`
+
+Marks an existing menu item as available or unavailable when the kitchen cannot currently prepare it.
+
+**Authentication:** Required (Bearer token)
+**Permission:** `update_food` (assigned to the `chef` role)
+
+**Request Body:**
+
+```json
+{
+    "is_available": false
+}
+```
+
+The response is `200 OK` and returns the updated food object in `data`.
+
+#### Chef Restrictions
+
+The following protected operations return `403 Forbidden` for a chef:
+
+- Create, update, or delete invoices
+- Create, update, or delete invoice items
+- Adjust invoice item quantity: `PATCH /admin/invoices/{invoice}/food/{foodItem}/quantity`
+- Create, update, or delete reservations
+- Create, update, or delete categories or sub-categories
+- Create, update, or delete users
+- Create, update, or delete tables
+- Create or delete food menu items
+
+The chef can read invoice and food data, update food preparation status, and change `is_available`; the chef cannot change order quantities, notes, billing data, or other menu fields.
+
 ### CORS Configuration
 
 The frontend is configured to run at `http://localhost:5173` and has full CORS access to this API.
