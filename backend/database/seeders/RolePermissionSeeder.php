@@ -60,7 +60,6 @@ class RolePermissionSeeder extends Seeder
         $admin->syncPermissions($permissions);
 
         $cashier->syncPermissions([
-            'create_invoice',
             'update_invoice',
             'cancel_invoice',
         ]);

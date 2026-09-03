@@ -78,6 +78,110 @@ The waiter is explicitly forbidden from:
 
 **Waiter permissions in this system:** `manage_reservations`, `create_invoice`, `update_invoice_item`
 
+### Cashier Role Workflow
+
+The cashier role is designed for billing and payment closure. A cashier can perform the following actions:
+
+- View all invoices: `GET /admin/invoices`
+- View one invoice with table, items, and total: `GET /admin/invoices/{invoice}`
+- Apply a discount to an existing invoice: `PUT /admin/invoices/{invoice}` with `discount`
+- Mark an invoice as completed/closed: `PUT /admin/invoices/{invoice}` with `status: "completed"`
+- Cancel an existing invoice: `DELETE /admin/invoices/{invoice}`
+
+The cashier is explicitly forbidden from:
+
+- Creating new invoices: `POST /admin/invoices`
+- Adding items to an invoice: `POST /admin/invoices/{invoice}/food`
+- Updating invoice item quantity or note: `PUT /admin/invoices/{invoice}/food/{foodItem}`
+- Changing food preparation status: `PATCH /admin/invoices/{invoice}/food/{foodItem}/status`
+- Creating reservations: `POST /admin/reservations`
+- Creating categories: `POST /admin/categories`
+- Creating users: `POST /admin/users`
+- Deleting food items: `DELETE /admin/foods/{id}`
+
+**Cashier permissions in this system:** `update_invoice`, `cancel_invoice`
+
+#### Cashier: Update Invoice and Discount
+
+**PUT** `/admin/invoices/{invoice}`
+
+Updates an existing invoice, mainly for closing the bill or adjusting payment values.
+
+**Authentication:** Required (Bearer token)  
+**Permission:** `update_invoice` (assigned to the `cashier` role)
+
+**Request Body Example:**
+
+```json
+{
+    "discount": 1000
+}
+```
+
+or
+
+```json
+{
+    "status": "completed"
+}
+```
+
+Allowed values for `discount` are non-negative integers. The `status` field accepts `pending`, `completed`, or `cancelled`.
+
+**Discount Rules:**
+
+- `discount` must be an integer and cannot be negative
+- `discount` is subtracted from the invoice subtotal
+- if the discount is greater than the subtotal, the invoice total is floored at `0`
+- recalculation happens whenever the discount changes and when invoice items are added or removed
+
+**Success Response (200):**
+
+```json
+{
+    "success": true,
+    "message": "Invoice updated successfully",
+    "data": {
+        "id": 12,
+        "table_id": 3,
+        "status": "completed",
+        "discount": 1000,
+        "total": 4000,
+        "invoice_foods": [
+            {
+                "id": 21,
+                "food_id": 1,
+                "quantity": 2,
+                "status": "pending"
+            }
+        ]
+    }
+}
+```
+
+**Error Responses:** `403 Forbidden` without `update_invoice`, `404 Not Found` for a missing invoice, and `422 Unprocessable Entity` for invalid discount values.
+
+#### Cashier: Cancel Invoice
+
+**DELETE** `/admin/invoices/{invoice}`
+
+Deletes an existing invoice when the cashier closes or cancels the bill.
+
+**Authentication:** Required (Bearer token)  
+**Permission:** `cancel_invoice` (assigned to the `cashier` role)
+
+**Success Response (200):**
+
+```json
+{
+    "success": true,
+    "message": "Invoice deleted successfully",
+    "data": null
+}
+```
+
+**Error Responses:** `403 Forbidden` without `cancel_invoice` and `404 Not Found` for a missing invoice.
+
 ### Chef Role Workflow
 
 The chef role is designed for kitchen operations. A chef can:
