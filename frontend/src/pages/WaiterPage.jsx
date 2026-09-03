@@ -175,8 +175,22 @@ export default function WaiterPage() {
   }, [step, selectedTable]);
 
   const visibleSubCategories = subCategories.filter((s) => s.category_id === activeCategory);
-  const visibleFoods = foods.filter((f) => f.sub_category_id === activeSubCategory);
+  const SIZE_RANK = { L: 0, M: 1, S: 2 };
 
+const getSizeRank = (size) => {
+  if (!size) return 3;
+  const firstLetter = size.trim().charAt(0).toUpperCase();
+  return SIZE_RANK[firstLetter] ?? 3;
+};
+
+const visibleFoods = foods
+  .filter((f) => f.sub_category_id === activeSubCategory)
+  .sort((a, b) => {
+    const nameA = getLocalized(a.name);
+    const nameB = getLocalized(b.name);
+    if (nameA !== nameB) return nameA.localeCompare(nameB);
+    return getSizeRank(a.size) - getSizeRank(b.size);
+  });
   const liveTotal =
     sentItems.reduce((sum, i) => sum + (i.price || 0) * i.quantity, 0) +
     cart.reduce((sum, c) => sum + c.price * c.quantity, 0);

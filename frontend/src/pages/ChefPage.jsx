@@ -215,7 +215,13 @@ export default function ChefPage() {
     const summary = {};
     items.forEach((item) => {
       const key = `${item.foodName}${item.foodSize ? ` (${item.foodSize})` : ""}`;
-      summary[key] = (summary[key] || 0) + item.quantity;
+      if (!summary[key]) {
+        summary[key] = { quantity: 0, notes: [] };
+      }
+      summary[key].quantity += item.quantity;
+      if (item.note) {
+        summary[key].notes.push({ person: item.person_number, note: item.note });
+      }
     });
     return Object.entries(summary);
   };
@@ -287,6 +293,7 @@ export default function ChefPage() {
               const summary = buildSummary(items);
               const overallStatus = getOverallStatus(items);
               const buttonLabel = STAGE_BUTTON_LABEL[overallStatus];
+              const waiterForTable = items[0]?.waiterName;
 
               return (
                 <div
@@ -295,29 +302,25 @@ export default function ChefPage() {
                   className={`table-group ${highlightLabel === tableLabel ? "table-group-highlight" : ""}`}
                 >
                   <span className={`status-circle status-circle-${overallStatus}`} />
-                  <h2 className="table-group-title">Table {tableLabel}</h2>
 
-                  {items.map((item) => (
-                    <div key={item.id} className="kitchen-item">
-                      <div className="kitchen-item-info">
-                        <div className="kitchen-item-name">
-                          {item.foodName}{item.foodSize && ` (${item.foodSize})`} × {item.quantity} (P{item.person_number})
-                        </div>
-                        <div className="kitchen-item-meta">
-                          <span className="kitchen-item-waiter">Sent by {item.waiterName}</span>
-                        </div>
-                        {item.note && <div className="kitchen-item-note">Note: {item.note}</div>}
-                      </div>
-                    </div>
-                  ))}
+                  <div className="table-header-block">
+                    <div className="table-header-name">Table {tableLabel}</div>
+                    <div className="table-header-waiter">Waiter: {waiterForTable}</div>
+                  </div>
 
                   <div className="table-summary">
-                    <p className="table-summary-title">To prepare in total:</p>
-                    {summary.map(([name, qty]) => (
-                      <div key={name} className="table-summary-row">
-                        <span>{name}</span>
-                        <span className="table-summary-dots"></span>
-                        <span className="table-summary-qty">× {qty}</span>
+                    {summary.map(([name, data]) => (
+                      <div key={name} className="table-summary-block">
+                        <div className="table-summary-row">
+                          <span>{name}</span>
+                          <span className="table-summary-dots"></span>
+                          <span className="table-summary-qty">× {data.quantity}</span>
+                        </div>
+                        {data.notes.map((n, i) => (
+                          <div key={i} className="table-summary-note">
+                            P{n.person}: {n.note}
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>

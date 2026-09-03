@@ -232,8 +232,9 @@
 
 .food-card-image {
   width: 100%;
-  aspect-ratio: 1.4;
-  object-fit: cover;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background-color: #fafafa;
   border-radius: 8px;
 }
 
