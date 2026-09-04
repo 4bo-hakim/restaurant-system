@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\CategoryController;
+use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\FoodController;
 use App\Http\Controllers\Api\Admin\InvoiceController;
 use App\Http\Controllers\Api\Admin\InvoiceFoodController;
@@ -21,6 +22,12 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 
 Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/roles-permissions', [UserController::class, 'getRolesAndPermissions']);
+
+    // Dashboard routes
+    Route::get('/dashboard/summary', [DashboardController::class, 'summary'])->middleware('permission:view_reports');
+    Route::get('/dashboard/top-items', [DashboardController::class, 'topItems'])->middleware('permission:view_reports');
+    Route::get('/dashboard/revenue-by-category', [DashboardController::class, 'revenueByCategory'])->middleware('permission:view_reports');
+    Route::get('/dashboard/reservations-summary', [DashboardController::class, 'reservationsSummary'])->middleware('permission:view_reports');
 
     // Categories routes
     Route::get('/categories', [CategoryController::class, 'index']);
