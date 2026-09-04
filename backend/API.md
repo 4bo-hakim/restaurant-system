@@ -48,6 +48,64 @@ All responses follow this envelope structure:
 }
 ```
 
+## Public Customer Menu
+
+### Get Menu
+
+**GET** `/menu`
+
+Returns the customer-facing restaurant menu for QR-code visitors.
+
+**Authentication:** Not required. This endpoint is public and must not include a Sanctum token.
+
+The response includes only categories and sub-categories that contain at least one available food. Unavailable foods are excluded. Internal fields such as IDs, `created_by`, timestamps, and `is_available` are not returned. This endpoint is read-only and does not provide ordering functionality.
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Menu retrieved successfully",
+  "data": [
+    {
+      "name": {
+        "en": "Food",
+        "ar": "طعام",
+        "ku": "خواردن"
+      },
+      "image_path": "categories/food.jpg",
+      "sub_categories": [
+        {
+          "name": {
+            "en": "Main Courses",
+            "ar": "الأطباق الرئيسية",
+            "ku": "خواردنییە سەرەکییەکان"
+          },
+          "image_path": "sub-categories/main-courses.jpg",
+          "foods": [
+            {
+              "name": {
+                "en": "Grilled Chicken",
+                "ar": "دجاج مشوي",
+                "ku": "مریشکی برژاو"
+              },
+              "description": {
+                "en": "Grilled chicken with vegetables",
+                "ar": "دجاج مشوي مع الخضروات",
+                "ku": "مریشکی برژاو لەگەڵ سەوزەوات"
+              },
+              "size": "Regular",
+              "price": 12000,
+              "image_path": "foods/grilled-chicken.jpg"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
 ### Available Roles
 
 - `admin` - Full system access
