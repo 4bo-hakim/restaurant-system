@@ -76,6 +76,7 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
 
     // Invoices routes
     Route::get('/invoices', [InvoiceController::class, 'index']);
+    Route::get('/invoices/{invoice}/bill', [InvoiceController::class, 'printBill']);
     Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
     Route::post('/invoices', [InvoiceController::class, 'store'])->middleware('permission:create_invoice');
     Route::put('/invoices/{invoice}', [InvoiceController::class, 'update'])->middleware('permission:update_invoice');

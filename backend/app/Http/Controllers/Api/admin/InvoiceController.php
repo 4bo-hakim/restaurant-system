@@ -81,6 +81,49 @@ class InvoiceController extends Controller
         });
     }
 
+    public function printBill($id)
+    {
+        $invoice = Invoice::with(['table', 'creator', 'invoiceFoods.food'])->find($id);
+
+        if (!$invoice) {
+            return $this->error('Invoice not found', 404);
+        }
+
+        $people = $invoice->invoiceFoods
+            ->where('status', '!=', 'cancelled')
+            ->groupBy('person_number')
+            ->map(function ($items, $personNumber) {
+                return [
+                    'person_number' => (int) $personNumber,
+                    'items' => $items->map(function ($item) {
+                        return [
+                            'food_name' => $item->food->name,
+                            'quantity' => $item->quantity,
+                            'unit_price' => $item->unit_price,
+                            'line_total' => $item->unit_price * $item->quantity,
+                        ];
+                    })->values(),
+                    'person_subtotal' => $items->sum(function ($item) {
+                        return $item->unit_price * $item->quantity;
+                    }),
+                ];
+            })->values();
+
+        $subtotal = $people->sum('person_subtotal');
+
+        return $this->success([
+            'invoice_id' => $invoice->id,
+            'table_number' => $invoice->table->table_number,
+            'created_at' => $invoice->created_at,
+            'served_by' => $invoice->creator?->name ?? 'QR Order',
+            'people' => $people,
+            'subtotal' => $subtotal,
+            'discount' => $invoice->discount,
+            'total' => $invoice->total,
+            'status' => $invoice->status,
+        ], 'Bill retrieved successfully');
+    }
+
     public function update(InvoiceRequest $request, $id)
     {
         $invoice = Invoice::find($id);

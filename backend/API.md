@@ -165,7 +165,7 @@ The cashier is explicitly forbidden from:
 
 Updates an existing invoice, mainly for closing the bill or adjusting payment values.
 
-**Authentication:** Required (Bearer token)  
+**Authentication:** Required (Bearer token)
 **Permission:** `update_invoice` (assigned to the `cashier` role)
 
 **Request Body Example:**
@@ -1941,6 +1941,58 @@ Retrieves a specific invoice with all details.
 ```
 
 ---
+
+### Print Invoice Bill
+
+**GET** `/admin/invoices/{invoice}/bill`
+
+Returns a clean, print-ready bill structure grouped by `person_number`.
+
+**Authentication:** Required (Bearer token)
+**Permission:** None beyond authentication. Any logged-in staff member can print a bill.
+
+**Important Business Logic:**
+
+- Cancelled invoice food items are excluded from the bill
+- Remaining items are grouped by `person_number`
+- Each person includes a subtotal calculated from `unit_price × quantity`
+- `subtotal` is the total before discount
+- `served_by` contains the creator's name, or `QR Order` when the invoice was created without a user
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Bill retrieved successfully",
+  "data": {
+    "invoice_id": 10,
+    "table_number": "T-01",
+    "created_at": "2026-09-05T12:00:00.000000Z",
+    "served_by": "Admin User",
+    "people": [
+      {
+        "person_number": 1,
+        "items": [
+          {
+            "food_name": "Grilled Chicken",
+            "quantity": 2,
+            "unit_price": 12000,
+            "line_total": 24000
+          }
+        ],
+        "person_subtotal": 24000
+      }
+    ],
+    "subtotal": 24000,
+    "discount": 1000,
+    "total": 23000,
+    "status": "completed"
+  }
+}
+```
+
+**Error Responses:** `401 Unauthorized` without a valid Sanctum token and `404 Not Found` for a missing invoice.
 
 ### 3. Create Invoice with Items
 
