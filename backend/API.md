@@ -283,24 +283,24 @@ Returns revenue, completed order count, discounts, average order value, and the 
 
 **Query Parameters:**
 
-| Parameter | Type | Required | Notes |
-|-----------|------|----------|-------|
-| from | date | No | Start date in `Y-m-d` format |
-| to | date | No | End date in `Y-m-d` format |
+| Parameter | Type | Required | Notes                        |
+| --------- | ---- | -------- | ---------------------------- |
+| from      | date | No       | Start date in `Y-m-d` format |
+| to        | date | No       | End date in `Y-m-d` format   |
 
 **Success Response (200):**
 
 ```json
 {
-  "success": true,
-  "message": "Dashboard summary retrieved successfully",
-  "data": {
-    "total_revenue": 125000,
-    "total_completed_orders": 10,
-    "total_discount_given": 5000,
-    "average_order_value": 12500,
-    "active_tables": 3
-  }
+    "success": true,
+    "message": "Dashboard summary retrieved successfully",
+    "data": {
+        "total_revenue": 125000,
+        "total_completed_orders": 10,
+        "total_discount_given": 5000,
+        "average_order_value": 12500,
+        "active_tables": 3
+    }
 }
 ```
 
@@ -312,26 +312,26 @@ Returns food items ordered by quantity sold in descending order. Item revenue is
 
 **Query Parameters:**
 
-| Parameter | Type | Required | Notes |
-|-----------|------|----------|-------|
-| from | date | No | Start date in `Y-m-d` format |
-| to | date | No | End date in `Y-m-d` format |
-| limit | integer | No | Number of items to return; defaults to `5` |
+| Parameter | Type    | Required | Notes                                      |
+| --------- | ------- | -------- | ------------------------------------------ |
+| from      | date    | No       | Start date in `Y-m-d` format               |
+| to        | date    | No       | End date in `Y-m-d` format                 |
+| limit     | integer | No       | Number of items to return; defaults to `5` |
 
 **Success Response (200):**
 
 ```json
 {
-  "success": true,
-  "message": "Top items retrieved successfully",
-  "data": [
-    {
-      "food_id": 1,
-      "food_name": "Grilled Chicken",
-      "total_quantity_sold": 25,
-      "total_revenue": 250000
-    }
-  ]
+    "success": true,
+    "message": "Top items retrieved successfully",
+    "data": [
+        {
+            "food_id": 1,
+            "food_name": "Grilled Chicken",
+            "total_quantity_sold": 25,
+            "total_revenue": 250000
+        }
+    ]
 }
 ```
 
@@ -343,24 +343,24 @@ Returns revenue grouped by food category for completed invoices.
 
 **Query Parameters:**
 
-| Parameter | Type | Required | Notes |
-|-----------|------|----------|-------|
-| from | date | No | Start date in `Y-m-d` format |
-| to | date | No | End date in `Y-m-d` format |
+| Parameter | Type | Required | Notes                        |
+| --------- | ---- | -------- | ---------------------------- |
+| from      | date | No       | Start date in `Y-m-d` format |
+| to        | date | No       | End date in `Y-m-d` format   |
 
 **Success Response (200):**
 
 ```json
 {
-  "success": true,
-  "message": "Revenue by category retrieved successfully",
-  "data": [
-    {
-      "category_id": 1,
-      "category_name": "Main Courses",
-      "total_revenue": 750000
-    }
-  ]
+    "success": true,
+    "message": "Revenue by category retrieved successfully",
+    "data": [
+        {
+            "category_id": 1,
+            "category_name": "Main Courses",
+            "total_revenue": 750000
+        }
+    ]
 }
 ```
 
@@ -372,23 +372,23 @@ Counts reservations by status based on `reservation_at`. The response always inc
 
 **Query Parameters:**
 
-| Parameter | Type | Required | Notes |
-|-----------|------|----------|-------|
-| from | date | No | Start date in `Y-m-d` format |
-| to | date | No | End date in `Y-m-d` format |
+| Parameter | Type | Required | Notes                        |
+| --------- | ---- | -------- | ---------------------------- |
+| from      | date | No       | Start date in `Y-m-d` format |
+| to        | date | No       | End date in `Y-m-d` format   |
 
 **Success Response (200):**
 
 ```json
 {
-  "success": true,
-  "message": "Reservations summary retrieved successfully",
-  "data": {
-    "pending": 5,
-    "confirmed": 3,
-    "cancelled": 1,
-    "completed": 10
-  }
+    "success": true,
+    "message": "Reservations summary retrieved successfully",
+    "data": {
+        "pending": 5,
+        "confirmed": 3,
+        "cancelled": 1,
+        "completed": 10
+    }
 }
 ```
 
