@@ -4,11 +4,10 @@ import "../styles/ChefPage.css";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 const KITCHEN_ICONS = ["👨‍🍳", "🍳", "🔪"];
-const STAGE_ORDER = ["pending", "preparing", "ready"];
+const STAGE_ORDER = ["pending", "preparing"];
 const NEXT_STATUS = {
   pending: "preparing",
   preparing: "ready",
-  ready: "served",
 };
 const STAGE_BUTTON_LABEL = {
   pending: "Make all preparing",
@@ -191,9 +190,12 @@ export default function ChefPage() {
     }
   };
 
+  // Only items still needing kitchen work (pending or preparing).
+  // Ready/served/cancelled items are excluded — once "ready", the item
+  // moves off the chef's queue and appears on the cashier's invoice list.
   const activeItems = invoices.flatMap((inv) =>
     (inv.invoice_foods || [])
-      .filter((f) => f.status !== "cancelled" && f.status !== "served")
+      .filter((f) => f.status === "pending" || f.status === "preparing")
       .map((f) => ({
         ...f,
         invoiceId: inv.id,
@@ -325,12 +327,10 @@ export default function ChefPage() {
                     ))}
                   </div>
 
-                  {buttonLabel ? (
+                  {buttonLabel && (
                     <button className="advance-all-btn" onClick={() => advanceAllInTable(items)}>
                       {buttonLabel}
                     </button>
-                  ) : (
-                    <p className="ready-note">Ready — sent to cashier</p>
                   )}
                 </div>
               );
