@@ -64,45 +64,45 @@ The response includes only categories and sub-categories that contain at least o
 
 ```json
 {
-  "success": true,
-  "message": "Menu retrieved successfully",
-  "data": [
-    {
-      "name": {
-        "en": "Food",
-        "ar": "طعام",
-        "ku": "خواردن"
-      },
-      "image_path": "categories/food.jpg",
-      "sub_categories": [
+    "success": true,
+    "message": "Menu retrieved successfully",
+    "data": [
         {
-          "name": {
-            "en": "Main Courses",
-            "ar": "الأطباق الرئيسية",
-            "ku": "خواردنییە سەرەکییەکان"
-          },
-          "image_path": "sub-categories/main-courses.jpg",
-          "foods": [
-            {
-              "name": {
-                "en": "Grilled Chicken",
-                "ar": "دجاج مشوي",
-                "ku": "مریشکی برژاو"
-              },
-              "description": {
-                "en": "Grilled chicken with vegetables",
-                "ar": "دجاج مشوي مع الخضروات",
-                "ku": "مریشکی برژاو لەگەڵ سەوزەوات"
-              },
-              "size": "Regular",
-              "price": 12000,
-              "image_path": "foods/grilled-chicken.jpg"
-            }
-          ]
+            "name": {
+                "en": "Food",
+                "ar": "طعام",
+                "ku": "خواردن"
+            },
+            "image_path": "categories/food.jpg",
+            "sub_categories": [
+                {
+                    "name": {
+                        "en": "Main Courses",
+                        "ar": "الأطباق الرئيسية",
+                        "ku": "خواردنییە سەرەکییەکان"
+                    },
+                    "image_path": "sub-categories/main-courses.jpg",
+                    "foods": [
+                        {
+                            "name": {
+                                "en": "Grilled Chicken",
+                                "ar": "دجاج مشوي",
+                                "ku": "مریشکی برژاو"
+                            },
+                            "description": {
+                                "en": "Grilled chicken with vegetables",
+                                "ar": "دجاج مشوي مع الخضروات",
+                                "ku": "مریشکی برژاو لەگەڵ سەوزەوات"
+                            },
+                            "size": "Regular",
+                            "price": 12000,
+                            "image_path": "foods/grilled-chicken.jpg"
+                        }
+                    ]
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
 ```
 
