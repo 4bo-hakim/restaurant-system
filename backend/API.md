@@ -267,6 +267,133 @@ The following protected operations return `403 Forbidden` for a chef:
 
 The chef can read invoice and food data, update food preparation status, and change `is_available`; the chef cannot change order quantities, notes, billing data, or other menu fields.
 
+### Admin Dashboard and Reports
+
+These endpoints are available only to authenticated users with the `view_reports` permission. This permission is assigned only to the `admin` role.
+
+All date filters use the `Y-m-d` format. If `from` and `to` are omitted, both default to today's date. The date range includes the full `from` and `to` days. If `from` is after `to`, the API returns `422 Unprocessable Entity`.
+
+Only invoices with `status: "completed"` count as revenue or sales. Pending and cancelled invoices are excluded from all revenue and sales calculations.
+
+#### Get Dashboard Summary
+
+**GET** `/admin/dashboard/summary`
+
+Returns revenue, completed order count, discounts, average order value, and the number of tables with a pending invoice right now. Active tables are not limited by the selected date range.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Notes |
+|-----------|------|----------|-------|
+| from | date | No | Start date in `Y-m-d` format |
+| to | date | No | End date in `Y-m-d` format |
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Dashboard summary retrieved successfully",
+  "data": {
+    "total_revenue": 125000,
+    "total_completed_orders": 10,
+    "total_discount_given": 5000,
+    "average_order_value": 12500,
+    "active_tables": 3
+  }
+}
+```
+
+#### Get Top-Selling Items
+
+**GET** `/admin/dashboard/top-items`
+
+Returns food items ordered by quantity sold in descending order. Item revenue is calculated from `unit_price * quantity` on completed invoice items.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Notes |
+|-----------|------|----------|-------|
+| from | date | No | Start date in `Y-m-d` format |
+| to | date | No | End date in `Y-m-d` format |
+| limit | integer | No | Number of items to return; defaults to `5` |
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Top items retrieved successfully",
+  "data": [
+    {
+      "food_id": 1,
+      "food_name": "Grilled Chicken",
+      "total_quantity_sold": 25,
+      "total_revenue": 250000
+    }
+  ]
+}
+```
+
+#### Get Revenue by Category
+
+**GET** `/admin/dashboard/revenue-by-category`
+
+Returns revenue grouped by food category for completed invoices.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Notes |
+|-----------|------|----------|-------|
+| from | date | No | Start date in `Y-m-d` format |
+| to | date | No | End date in `Y-m-d` format |
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Revenue by category retrieved successfully",
+  "data": [
+    {
+      "category_id": 1,
+      "category_name": "Main Courses",
+      "total_revenue": 750000
+    }
+  ]
+}
+```
+
+#### Get Reservations Summary
+
+**GET** `/admin/dashboard/reservations-summary`
+
+Counts reservations by status based on `reservation_at`. The response always includes `pending`, `confirmed`, `cancelled`, and `completed`, including statuses with no reservations in the selected date range.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Notes |
+|-----------|------|----------|-------|
+| from | date | No | Start date in `Y-m-d` format |
+| to | date | No | End date in `Y-m-d` format |
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Reservations summary retrieved successfully",
+  "data": {
+    "pending": 5,
+    "confirmed": 3,
+    "cancelled": 1,
+    "completed": 10
+  }
+}
+```
+
+**Common Error Responses:** `401 Unauthorized` without a valid Sanctum token, `403 Forbidden` without `view_reports`, and `422 Unprocessable Entity` for an invalid date format or a `from` date after the `to` date.
+
 ### CORS Configuration
 
 The frontend is configured to run at `http://localhost:5173` and has full CORS access to this API.
