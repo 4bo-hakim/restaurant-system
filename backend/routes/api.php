@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Admin\SubCategoryController;
 use App\Http\Controllers\Api\Admin\TableController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\PublicMenuController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,7 @@ Route::get('/user', function (Request $request) {
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+Route::get('/menu', [PublicMenuController::class, 'index']);
 
 Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/roles-permissions', [UserController::class, 'getRolesAndPermissions']);
