@@ -30,7 +30,7 @@ class FoodController extends Controller
             ? in_array($filters['is_available'], ['true', '1'], true)
             : null;
 
-        $foods = Food::with('subCategory')
+        $foodQuery = Food::with('subCategory')
             ->when(array_key_exists('sub_category_id', $filters), fn($query) => $query->where('sub_category_id', $filters['sub_category_id']))
             ->when($isAvailable !== null, fn($query) => $query->where('is_available', $isAvailable))
             ->when($filters['search'] ?? null, function ($query, $search) {
@@ -39,8 +39,11 @@ class FoodController extends Controller
                         ->orWhere('name->ar', 'like', "%{$search}%")
                         ->orWhere('name->ku', 'like', "%{$search}%");
                 });
-            })
-            ->paginate(20);
+            });
+
+        $foods = auth()->user()->hasRole('admin')
+            ? $foodQuery->paginate(20)
+            : $foodQuery->get();
 
         return $this->success($foods, 'Foods retrieved successfully');
     }

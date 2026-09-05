@@ -37,12 +37,15 @@ class InvoiceController extends Controller
             return $this->error('The from date cannot be after the to date', 422);
         }
 
-        $invoices = Invoice::with(['table', 'invoiceFoods.food'])
+        $invoiceQuery = Invoice::with(['table', 'invoiceFoods.food'])
             ->when($filters['status'] ?? null, fn($query, $status) => $query->where('status', $status))
             ->when(array_key_exists('table_id', $filters), fn($query) => $query->where('table_id', $filters['table_id']))
             ->when($fromDate, fn($query) => $query->where('created_at', '>=', $fromDate->startOfDay()))
-            ->when($toDate, fn($query) => $query->where('created_at', '<=', $toDate->endOfDay()))
-            ->paginate(20);
+            ->when($toDate, fn($query) => $query->where('created_at', '<=', $toDate->endOfDay()));
+
+        $invoices = auth()->user()->hasRole('admin')
+            ? $invoiceQuery->paginate(20)
+            : $invoiceQuery->get();
 
         return $this->success($invoices, 'Invoices retrieved successfully');
     }

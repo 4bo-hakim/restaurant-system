@@ -25,11 +25,14 @@ class ReservationController extends Controller
 
         $filters = $validator->validated();
 
-        $reservations = Reservation::with('table')
+        $reservationQuery = Reservation::with('table')
             ->when($filters['status'] ?? null, fn($query, $status) => $query->where('status', $status))
             ->when(array_key_exists('table_id', $filters), fn($query) => $query->where('table_id', $filters['table_id']))
-            ->when($filters['date'] ?? null, fn($query, $date) => $query->whereDate('reservation_at', $date))
-            ->paginate(20);
+            ->when($filters['date'] ?? null, fn($query, $date) => $query->whereDate('reservation_at', $date));
+
+        $reservations = auth()->user()->hasRole('admin')
+            ? $reservationQuery->paginate(20)
+            : $reservationQuery->get();
 
         return $this->success($reservations, 'Reservations retrieved successfully');
     }
