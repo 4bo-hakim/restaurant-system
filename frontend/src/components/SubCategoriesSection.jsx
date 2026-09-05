@@ -8,6 +8,8 @@ export default function SubCategoriesSection({ authHeaders }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ name_en: "", name_ar: "", name_ku: "", category_id: "" });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [editingId, setEditingId] = useState(null);
 
   const fetchData = async () => {
@@ -21,8 +23,8 @@ export default function SubCategoriesSection({ authHeaders }) {
       if (!subRes.ok || !catRes.ok) throw new Error("Failed to load data");
       const subData = await subRes.json();
       const catData = await catRes.json();
-      setSubCategories(subData.data || []);
-      setCategories(catData.data || []);
+      setSubCategories(subData.data?.data || subData.data || []);
+      setCategories(catData.data?.data || catData.data || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -38,6 +40,16 @@ export default function SubCategoriesSection({ authHeaders }) {
   const resetForm = () => {
     setForm({ name_en: "", name_ar: "", name_ku: "", category_id: categories[0]?.id || "" });
     setEditingId(null);
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -49,6 +61,9 @@ export default function SubCategoriesSection({ authHeaders }) {
       formData.append("name[ar]", form.name_ar);
       formData.append("name[ku]", form.name_ku);
       formData.append("category_id", form.category_id);
+      if (imageFile) {
+        formData.append("image_path", imageFile);
+      }
 
       let url = `${API_BASE}/admin/sub-categories`;
       if (editingId) {
@@ -71,6 +86,8 @@ export default function SubCategoriesSection({ authHeaders }) {
   const handleEdit = (s) => {
     setEditingId(s.id);
     setForm({ name_en: s.name?.en || "", name_ar: s.name?.ar || "", name_ku: s.name?.ku || "", category_id: s.category_id });
+    setImageFile(null);
+    setImagePreview(s.image_path ? `http://127.0.0.1:8000/storage/${s.image_path}` : null);
   };
 
   const handleDelete = async (id) => {
@@ -107,6 +124,24 @@ export default function SubCategoriesSection({ authHeaders }) {
           <input placeholder="Name (Arabic)" value={form.name_ar} onChange={(e) => setForm({ ...form, name_ar: e.target.value })} required />
           <input placeholder="Name (Kurdish)" value={form.name_ku} onChange={(e) => setForm({ ...form, name_ku: e.target.value })} required />
         </div>
+
+        <div className="admin-form-row">
+          <div>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml"
+              onChange={handleImageChange}
+            />
+            {imagePreview && (
+              <img
+                src={imagePreview}
+                alt="Preview"
+                style={{ maxWidth: 120, maxHeight: 120, marginTop: 8, borderRadius: 8, display: "block" }}
+              />
+            )}
+          </div>
+        </div>
+
         <div className="admin-form-actions">
           <button type="submit" className="admin-btn-primary">{editingId ? "Update" : "Add"}</button>
           {editingId && <button type="button" className="admin-btn-secondary" onClick={resetForm}>Cancel</button>}
@@ -119,10 +154,17 @@ export default function SubCategoriesSection({ authHeaders }) {
       ) : (
         <div className="admin-table-wrapper">
           <table className="admin-table">
-            <thead><tr><th>Name (EN)</th><th>Category</th><th>Foods</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Image</th><th>Name (EN)</th><th>Category</th><th>Foods</th><th>Actions</th></tr></thead>
             <tbody>
               {subCategories.map((s) => (
                 <tr key={s.id}>
+                  <td>
+                    {s.image_path ? (
+                      <img src={`http://127.0.0.1:8000/storage/${s.image_path}`} alt="" style={{ width: 50, height: 50, objectFit: "cover", borderRadius: 6 }} />
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                   <td>{s.name?.en || "-"}</td>
                   <td>{s.category?.name?.en || categoryName(s.category_id)}</td>
                   <td>{s.foods_count ?? "-"}</td>

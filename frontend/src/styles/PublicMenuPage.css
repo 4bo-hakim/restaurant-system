@@ -1,0 +1,398 @@
+.public-menu-page {
+  min-height: 100vh;
+  background-color: #0f0f0f;
+  font-family: Arial, sans-serif;
+  color: #ffffff;
+}
+
+.menu-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background-color: #1a1a1a;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.menu-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu-logo-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #2a2a2a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.menu-brand-name {
+  font-weight: bold;
+  font-size: 17px;
+  color: #ff8c42;
+}
+
+.menu-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.menu-topbar-icon-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  color: #ffffff;
+}
+
+.menu-topbar-icon-btn:hover {
+  background-color: #2a2a2a;
+}
+
+.menu-lang-wrapper {
+  position: relative;
+}
+
+.menu-lang-dropdown {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 10px;
+  overflow: hidden;
+  min-width: 140px;
+  z-index: 50;
+}
+
+.public-menu-page[dir="rtl"] .menu-lang-dropdown {
+  right: auto;
+  left: 0;
+}
+
+.menu-lang-option {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  color: #fff;
+  text-align: start;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.menu-lang-option:hover {
+  background-color: #2a2a2a;
+}
+
+.menu-lang-option.active {
+  color: #ff8c42;
+  font-weight: bold;
+}
+
+.menu-search-bar {
+  padding: 10px 20px;
+  background-color: #1a1a1a;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.menu-search-input {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  display: block;
+  padding: 10px 16px;
+  border-radius: 20px;
+  border: 1px solid #333;
+  background-color: #0f0f0f;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.menu-search-input::placeholder {
+  color: #888;
+}
+
+.menu-promo-banner {
+  position: relative;
+  overflow: hidden;
+  background-color: #000;
+}
+
+.menu-promo-track {
+  display: flex;
+  transition: transform 0.6s ease;
+}
+
+.menu-promo-slide {
+  flex: 0 0 100%;
+  width: 100%;
+}
+
+.menu-promo-image {
+  width: 100%;
+  height: auto;
+  max-height: 320px;
+  object-fit: contain;
+  background-color: #000;
+  display: block;
+  margin: 0 auto;
+}
+
+.menu-promo-dots {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.menu-promo-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.menu-promo-dot.active {
+  background-color: #ff8c42;
+}
+
+.menu-nav {
+  background-color: #0f0f0f;
+  border-bottom: 1px solid #2a2a2a;
+  position: sticky;
+  top: 69px;
+  z-index: 39;
+}
+
+.menu-nav-scroll {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 16px 20px;
+  scrollbar-width: none;
+}
+
+.menu-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.public-menu-page[dir="rtl"] .menu-nav-scroll {
+  direction: rtl;
+}
+
+.menu-nav-tile {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 160px;
+}
+
+.menu-nav-tile-image-wrap {
+  width: 160px;
+  height: 115px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1a1a1a;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.menu-nav-tile.active .menu-nav-tile-image-wrap {
+  border-color: #ff8c42;
+  transform: scale(1.04);
+}
+
+.menu-nav-tile-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.menu-nav-tile-fallback {
+  font-size: 30px;
+}
+
+.menu-nav-tile-label {
+  font-size: 13px;
+  font-weight: bold;
+  color: #aaa;
+  transition: color 0.2s ease;
+}
+
+.menu-nav-tile.active .menu-nav-tile-label {
+  color: #ff8c42;
+}
+
+.menu-body {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 30px 16px 60px;
+}
+
+.menu-status {
+  text-align: center;
+  color: #888;
+  padding: 40px 0;
+}
+
+.menu-status-error {
+  color: #ff6b6b;
+}
+
+.menu-category-section {
+  margin-bottom: 48px;
+}
+
+.menu-category-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+  border-bottom: 3px solid #ff8c42;
+  display: inline-block;
+}
+
+.menu-subcategory-block {
+  margin-bottom: 30px;
+  scroll-margin-top: 160px;
+}
+
+.menu-subcategory-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #ff8c42;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+}
+
+.menu-food-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+@media (min-width: 700px) {
+  .menu-food-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1000px) {
+  .menu-food-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.menu-food-card {
+  background-color: #1a1a1a;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+@media (hover: hover) {
+  .menu-food-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  }
+}
+
+.menu-food-image {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background-color: #0f0f0f;
+}
+
+.menu-food-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+}
+
+.menu-food-info {
+  padding: 12px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.menu-food-name {
+  font-size: 14px;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.menu-food-desc {
+  font-size: 11.5px;
+  color: #999;
+  line-height: 1.4;
+  margin-bottom: 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.menu-food-sizes {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.menu-food-size-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.menu-food-size-label {
+  color: #aaa;
+  white-space: nowrap;
+}
+
+.menu-food-size-dots {
+  flex: 1;
+  border-bottom: 1px dotted #333;
+  margin-bottom: 3px;
+}
+
+.menu-food-size-price {
+  font-weight: bold;
+  color: #ff8c42;
+  white-space: nowrap;
+}

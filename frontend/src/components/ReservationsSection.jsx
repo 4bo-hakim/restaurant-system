@@ -8,6 +8,9 @@ export default function ReservationsSection({ authHeaders }) {
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [form, setForm] = useState({
     table_id: "", name: "", phone_number: "",
     reservation_at: "", reservation_end: "", guest_count: 1, status: "pending", note: "",
@@ -16,19 +19,24 @@ export default function ReservationsSection({ authHeaders }) {
 
   const jsonHeaders = { ...authHeaders, "Content-Type": "application/json" };
 
-  const fetchData = async () => {
+  const fetchData = async (targetPage = page) => {
     setLoading(true);
     setError("");
     try {
       const [resRes, tableRes] = await Promise.all([
-        fetch(`${API_BASE}/admin/reservations`, { headers: authHeaders }),
+        fetch(`${API_BASE}/admin/reservations?page=${targetPage}`, { headers: authHeaders }),
         fetch(`${API_BASE}/admin/tables`, { headers: authHeaders }),
       ]);
       if (!resRes.ok || !tableRes.ok) throw new Error("Failed to load data");
       const resData = await resRes.json();
       const tableData = await tableRes.json();
-      setReservations(resData.data || []);
-      setTables(tableData.data || []);
+
+      setReservations(resData.data?.data || resData.data || []);
+      setPage(resData.data?.current_page || 1);
+      setLastPage(resData.data?.last_page || 1);
+      setTotal(resData.data?.total ?? (resData.data?.length || 0));
+
+      setTables(tableData.data?.data || tableData.data || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -37,9 +45,14 @@ export default function ReservationsSection({ authHeaders }) {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const goToPage = (p) => {
+    if (p < 1 || p > lastPage) return;
+    fetchData(p);
+  };
 
   const resetForm = () => {
     setForm({
@@ -71,7 +84,7 @@ export default function ReservationsSection({ authHeaders }) {
         throw new Error(errData?.message || "Failed to save reservation");
       }
       resetForm();
-      fetchData();
+      fetchData(editingId ? page : 1);
     } catch (err) {
       setError(err.message);
     }
@@ -93,7 +106,7 @@ export default function ReservationsSection({ authHeaders }) {
     try {
       const res = await fetch(`${API_BASE}/admin/reservations/${id}`, { method: "DELETE", headers: authHeaders });
       if (!res.ok) throw new Error("Failed to delete reservation");
-      fetchData();
+      fetchData(page);
     } catch (err) {
       setError(err.message);
     }
@@ -135,29 +148,37 @@ export default function ReservationsSection({ authHeaders }) {
         </div>
       </form>
 
-      <h2 className="admin-subtitle">All reservations</h2>
+      <h2 className="admin-subtitle">All reservations ({total})</h2>
       {loading ? <p>Loading...</p> : (
-        <div className="admin-table-wrapper">
-          <table className="admin-table">
-            <thead><tr><th>Guest</th><th>Table</th><th>Start</th><th>End</th><th>Guests</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>
-              {reservations.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.name}</td>
-                  <td>{r.table?.table_number || tableNumber(r.table_id)}</td>
-                  <td>{new Date(r.reservation_at).toLocaleString()}</td>
-                  <td>{new Date(r.reservation_end).toLocaleString()}</td>
-                  <td>{r.guest_count}</td>
-                  <td>{r.status}</td>
-                  <td>
-                    <button className="admin-btn-small" onClick={() => handleEdit(r)}>Edit</button>
-                    <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(r.id)}>Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
+              <thead><tr><th>Guest</th><th>Table</th><th>Start</th><th>End</th><th>Guests</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                {reservations.map((r) => (
+                  <tr key={r.id}>
+                    <td>{r.name}</td>
+                    <td>{r.table?.table_number || tableNumber(r.table_id)}</td>
+                    <td>{new Date(r.reservation_at).toLocaleString()}</td>
+                    <td>{new Date(r.reservation_end).toLocaleString()}</td>
+                    <td>{r.guest_count}</td>
+                    <td>{r.status}</td>
+                    <td>
+                      <button className="admin-btn-small" onClick={() => handleEdit(r)}>Edit</button>
+                      <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(r.id)}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="pagination-controls">
+            <button className="pagination-btn" onClick={() => goToPage(page - 1)} disabled={page <= 1}>← Previous</button>
+            <span className="pagination-info">Page {page} of {lastPage}</span>
+            <button className="pagination-btn" onClick={() => goToPage(page + 1)} disabled={page >= lastPage}>Next →</button>
+          </div>
+        </>
       )}
     </>
   );
