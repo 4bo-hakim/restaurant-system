@@ -1243,7 +1243,7 @@ Deletes a sub-category. Only possible if no foods exist in it.
 
 **GET** `/admin/foods`
 
-Retrieves paginated food items with their sub-category details.
+Retrieves food items with their sub-category details. Admin users receive a paginated response with 20 foods per page. Other authenticated roles receive the complete filtered collection as an array.
 
 **Authentication:** Required (Bearer token)  
 **Permission:** None
@@ -1255,11 +1255,11 @@ Retrieves paginated food items with their sub-category details.
 | `sub_category_id` | integer | Filter by exact sub-category ID.                                              |
 | `is_available`    | string  | Filter by availability. Accepted values: `true`, `false`, `1`, `0`.           |
 | `search`          | string  | Partial search across the English, Arabic, and Kurdish translated food names. |
-| `page`            | integer | Page number. Each page contains 20 foods.                                     |
+| `page`            | integer | Admin only: page number. Each page contains 20 foods.                         |
 
 Invalid filter values return `422 Unprocessable Entity`.
 
-**Success Response (200):**
+**Success Response for Admin (200):**
 
 ```json
 {
@@ -1285,6 +1285,25 @@ Invalid filter values return `422 Unprocessable Entity`.
     "next_page_url": null,
     "prev_page_url": null
   }
+}
+```
+
+For non-admin authenticated roles, `data` is an array of all foods matching the filters and does not include pagination metadata:
+
+```json
+{
+  "success": true,
+  "message": "Foods retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "sub_category_id": 1,
+      "name": {"en": "Hummus", "ar": "حمص", "ku": "مس"},
+      "price": 5000,
+      "is_available": true,
+      "sub_category": {...}
+    }
+  ]
 }
 ```
 
@@ -1643,7 +1662,7 @@ Deletes a table. Only possible if no reservations or invoices exist for it.
 
 **GET** `/admin/reservations`
 
-Retrieves paginated reservations with table information.
+Retrieves reservations with table information. Admin users receive a paginated response with 20 reservations per page. Other authenticated roles receive the complete filtered collection as an array.
 
 **Authentication:** Required (Bearer token)  
 **Permission:** None
@@ -1655,11 +1674,11 @@ Retrieves paginated reservations with table information.
 | `status`   | string  | Exact status filter: `pending`, `confirmed`, `cancelled`, or `completed`. |
 | `table_id` | integer | Filter by exact table ID.                                                 |
 | `date`     | string  | Filter the entire calendar day. Format: `Y-m-d`.                          |
-| `page`     | integer | Page number. Each page contains 20 reservations.                          |
+| `page`     | integer | Admin only: page number. Each page contains 20 reservations.              |
 
 Invalid filter values return `422 Unprocessable Entity`.
 
-**Success Response (200):**
+**Success Response for Admin (200):**
 
 ```json
 {
@@ -1689,6 +1708,8 @@ Invalid filter values return `422 Unprocessable Entity`.
   }
 }
 ```
+
+For non-admin authenticated roles, `data` is an array of all reservations matching the filters and does not include pagination metadata.
 
 ---
 
@@ -1867,7 +1888,7 @@ Deletes a reservation.
 
 **GET** `/admin/invoices`
 
-Retrieves paginated invoices with table and food item details.
+Retrieves invoices with table and food item details. Admin users receive a paginated response with 20 invoices per page. Other authenticated roles receive the complete filtered collection as an array.
 
 **Authentication:** Required (Bearer token)  
 **Permission:** None
@@ -1880,11 +1901,11 @@ Retrieves paginated invoices with table and food item details.
 | `table_id` | integer | Filter by exact table ID.                                         |
 | `from`     | string  | Include invoices created on or after this date. Format: `Y-m-d`.  |
 | `to`       | string  | Include invoices created on or before this date. Format: `Y-m-d`. |
-| `page`     | integer | Page number. Each page contains 20 invoices.                      |
+| `page`     | integer | Admin only: page number. Each page contains 20 invoices.          |
 
 If `from` is later than `to`, or either date is malformed, the endpoint returns `422 Unprocessable Entity`.
 
-**Success Response (200):**
+**Success Response for Admin (200):**
 
 ```json
 {
@@ -1914,6 +1935,8 @@ If `from` is later than `to`, or either date is malformed, the endpoint returns 
   }
 }
 ```
+
+For non-admin authenticated roles, `data` is an array of all invoices matching the filters and does not include pagination metadata.
 
 ---
 
