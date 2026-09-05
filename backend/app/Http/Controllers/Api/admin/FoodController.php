@@ -7,12 +7,40 @@ use App\Http\Requests\Api\FoodRequest;
 use App\Models\Food;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class FoodController extends Controller
 {
     public function index()
     {
-        $foods = Food::with('subCategory')->get();
+        $request = request();
+
+        $validator = Validator::make($request->query(), [
+            'sub_category_id' => ['nullable', 'integer'],
+            'is_available' => ['nullable', 'in:true,false,1,0'],
+            'search' => ['nullable', 'string'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->error('Invalid food filters', 422, $validator->errors());
+        }
+
+        $filters = $validator->validated();
+        $isAvailable = isset($filters['is_available'])
+            ? in_array($filters['is_available'], ['true', '1'], true)
+            : null;
+
+        $foods = Food::with('subCategory')
+            ->when(array_key_exists('sub_category_id', $filters), fn($query) => $query->where('sub_category_id', $filters['sub_category_id']))
+            ->when($isAvailable !== null, fn($query) => $query->where('is_available', $isAvailable))
+            ->when($filters['search'] ?? null, function ($query, $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('name->en', 'like', "%{$search}%")
+                        ->orWhere('name->ar', 'like', "%{$search}%")
+                        ->orWhere('name->ku', 'like', "%{$search}%");
+                });
+            })
+            ->paginate(20);
 
         return $this->success($foods, 'Foods retrieved successfully');
     }

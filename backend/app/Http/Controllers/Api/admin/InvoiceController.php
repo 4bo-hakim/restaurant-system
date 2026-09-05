@@ -8,13 +8,41 @@ use App\Models\Food;
 use App\Models\Invoice;
 use App\Models\InvoiceFood;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class InvoiceController extends Controller
 {
     public function index()
     {
-        $invoices = Invoice::with(['table', 'invoiceFoods.food'])->get();
+        $request = request();
+
+        $validator = Validator::make($request->query(), [
+            'status' => ['nullable', 'in:pending,completed,cancelled'],
+            'table_id' => ['nullable', 'integer'],
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->error('Invalid invoice filters', 422, $validator->errors());
+        }
+
+        $filters = $validator->validated();
+        $fromDate = isset($filters['from']) ? Carbon::createFromFormat('!Y-m-d', $filters['from']) : null;
+        $toDate = isset($filters['to']) ? Carbon::createFromFormat('!Y-m-d', $filters['to']) : null;
+
+        if ($fromDate && $toDate && $fromDate->isAfter($toDate)) {
+            return $this->error('The from date cannot be after the to date', 422);
+        }
+
+        $invoices = Invoice::with(['table', 'invoiceFoods.food'])
+            ->when($filters['status'] ?? null, fn($query, $status) => $query->where('status', $status))
+            ->when(array_key_exists('table_id', $filters), fn($query) => $query->where('table_id', $filters['table_id']))
+            ->when($fromDate, fn($query) => $query->where('created_at', '>=', $fromDate->startOfDay()))
+            ->when($toDate, fn($query) => $query->where('created_at', '<=', $toDate->endOfDay()))
+            ->paginate(20);
 
         return $this->success($invoices, 'Invoices retrieved successfully');
     }

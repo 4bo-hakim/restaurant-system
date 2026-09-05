@@ -1239,14 +1239,25 @@ Deletes a sub-category. Only possible if no foods exist in it.
 
 ## Admin: Foods
 
-### 1. List All Foods
+### 1. List Foods
 
 **GET** `/admin/foods`
 
-Retrieves all food items with their sub-category details.
+Retrieves paginated food items with their sub-category details.
 
 **Authentication:** Required (Bearer token)  
 **Permission:** None
+
+**Query Parameters:**
+
+| Parameter         | Type    | Description                                                                   |
+| ----------------- | ------- | ----------------------------------------------------------------------------- |
+| `sub_category_id` | integer | Filter by exact sub-category ID.                                              |
+| `is_available`    | string  | Filter by availability. Accepted values: `true`, `false`, `1`, `0`.           |
+| `search`          | string  | Partial search across the English, Arabic, and Kurdish translated food names. |
+| `page`            | integer | Page number. Each page contains 20 foods.                                     |
+
+Invalid filter values return `422 Unprocessable Entity`.
 
 **Success Response (200):**
 
@@ -1254,30 +1265,26 @@ Retrieves all food items with their sub-category details.
 {
   "success": true,
   "message": "Foods retrieved successfully",
-  "data": [
-    {
-      "id": 1,
-      "sub_category_id": 1,
-      "name": {
-        "en": "Hummus",
-        "ar": "حمص",
-        "ku": "مس"
-      },
-      "description": {
-        "en": "Chickpea dip",
-        "ar": "ديب الحمص",
-        "ku": "مسی قایت"
-      },
-      "size": "Regular",
-      "price": 5000,
-      "image_path": "foods/hummus.jpg",
-      "is_available": true,
-      "created_by": 1,
-      "created_at": "2026-08-31T12:00:00.000000Z",
-      "updated_at": "2026-08-31T12:00:00.000000Z",
-      "sub_category": {...}
-    }
-  ]
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 1,
+        "sub_category_id": 1,
+        "name": {"en": "Hummus", "ar": "حمص", "ku": "مس"},
+        "price": 5000,
+        "is_available": true,
+        "sub_category": {...}
+      }
+    ],
+    "per_page": 20,
+    "total": 1,
+    "last_page": 1,
+    "first_page_url": "http://127.0.0.1:8000/api/admin/foods?page=1",
+    "last_page_url": "http://127.0.0.1:8000/api/admin/foods?page=1",
+    "next_page_url": null,
+    "prev_page_url": null
+  }
 }
 ```
 
@@ -1632,14 +1639,25 @@ Deletes a table. Only possible if no reservations or invoices exist for it.
 
 ## Admin: Reservations
 
-### 1. List All Reservations
+### 1. List Reservations
 
 **GET** `/admin/reservations`
 
-Retrieves all reservations with table information.
+Retrieves paginated reservations with table information.
 
 **Authentication:** Required (Bearer token)  
 **Permission:** None
+
+**Query Parameters:**
+
+| Parameter  | Type    | Description                                                               |
+| ---------- | ------- | ------------------------------------------------------------------------- |
+| `status`   | string  | Exact status filter: `pending`, `confirmed`, `cancelled`, or `completed`. |
+| `table_id` | integer | Filter by exact table ID.                                                 |
+| `date`     | string  | Filter the entire calendar day. Format: `Y-m-d`.                          |
+| `page`     | integer | Page number. Each page contains 20 reservations.                          |
+
+Invalid filter values return `422 Unprocessable Entity`.
 
 **Success Response (200):**
 
@@ -1647,29 +1665,28 @@ Retrieves all reservations with table information.
 {
     "success": true,
     "message": "Reservations retrieved successfully",
+  "data": {
+    "current_page": 1,
     "data": [
-        {
-            "id": 1,
-            "table_id": 1,
-            "name": "John Doe",
-            "phone_number": "+9647701234567",
-            "reservation_at": "2026-09-02T19:30:00.000000Z",
-            "reservation_end": "2026-09-02T21:30:00.000000Z",
-            "guest_count": 4,
-            "status": "confirmed",
-            "note": "Window seat preferred",
-            "created_by": 1,
-            "created_at": "2026-08-31T15:30:00.000000Z",
-            "updated_at": "2026-08-31T15:30:00.000000Z",
-            "table": {
-                "id": 1,
-                "table_number": "T-01",
-                "created_by": 1,
-                "created_at": "2026-08-31T12:00:00.000000Z",
-                "updated_at": "2026-08-31T12:00:00.000000Z"
-            }
-        }
-    ]
+      {
+        "id": 1,
+        "table_id": 1,
+        "name": "John Doe",
+        "reservation_at": "2026-09-02T19:30:00.000000Z",
+        "reservation_end": "2026-09-02T21:30:00.000000Z",
+        "guest_count": 4,
+        "status": "confirmed",
+        "table": {...}
+      }
+    ],
+    "per_page": 20,
+    "total": 1,
+    "last_page": 1,
+    "first_page_url": "http://127.0.0.1:8000/api/admin/reservations?page=1",
+    "last_page_url": "http://127.0.0.1:8000/api/admin/reservations?page=1",
+    "next_page_url": null,
+    "prev_page_url": null
+  }
 }
 ```
 
@@ -1846,14 +1863,26 @@ Deletes a reservation.
 
 ## Admin: Invoices
 
-### 1. List All Invoices
+### 1. List Invoices
 
 **GET** `/admin/invoices`
 
-Retrieves all invoices with table and food item details.
+Retrieves paginated invoices with table and food item details.
 
 **Authentication:** Required (Bearer token)  
 **Permission:** None
+
+**Query Parameters:**
+
+| Parameter  | Type    | Description                                                       |
+| ---------- | ------- | ----------------------------------------------------------------- |
+| `status`   | string  | Exact status filter: `pending`, `completed`, or `cancelled`.      |
+| `table_id` | integer | Filter by exact table ID.                                         |
+| `from`     | string  | Include invoices created on or after this date. Format: `Y-m-d`.  |
+| `to`       | string  | Include invoices created on or before this date. Format: `Y-m-d`. |
+| `page`     | integer | Page number. Each page contains 20 invoices.                      |
+
+If `from` is later than `to`, or either date is malformed, the endpoint returns `422 Unprocessable Entity`.
 
 **Success Response (200):**
 
@@ -1861,46 +1890,28 @@ Retrieves all invoices with table and food item details.
 {
   "success": true,
   "message": "Invoices retrieved successfully",
-  "data": [
-    {
-      "id": 1,
-      "table_id": 1,
-      "created_by": 1,
-      "status": "completed",
-      "discount": 0,
-      "total": 27000,
-      "created_at": "2026-08-31T12:00:00.000000Z",
-      "updated_at": "2026-08-31T12:00:00.000000Z",
-      "table": {
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
         "id": 1,
-        "table_number": "T-01",
-        "created_by": 1,
+        "table_id": 1,
+        "status": "completed",
+        "discount": 0,
+        "total": 27000,
         "created_at": "2026-08-31T12:00:00.000000Z",
-        "updated_at": "2026-08-31T12:00:00.000000Z"
-      },
-      "invoice_foods": [
-        {
-          "id": 1,
-          "invoice_id": 1,
-          "food_id": 1,
-          "person_number": 1,
-          "quantity": 2,
-          "unit_price": 10000,
-          "status": "pending",
-          "note": null,
-          "created_at": "2026-08-31T12:00:00.000000Z",
-          "updated_at": "2026-08-31T12:00:00.000000Z",
-          "food": {
-            "id": 1,
-            "sub_category_id": 1,
-            "name": {...},
-            "price": 10000,
-            "is_available": true
-          }
-        }
-      ]
-    }
-  ]
+        "table": {...},
+        "invoice_foods": [...]
+      }
+    ],
+    "per_page": 20,
+    "total": 1,
+    "last_page": 1,
+    "first_page_url": "http://127.0.0.1:8000/api/admin/invoices?page=1",
+    "last_page_url": "http://127.0.0.1:8000/api/admin/invoices?page=1",
+    "next_page_url": null,
+    "prev_page_url": null
+  }
 }
 ```
 

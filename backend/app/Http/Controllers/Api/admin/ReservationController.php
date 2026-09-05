@@ -5,12 +5,31 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ReservationRequest;
 use App\Models\Reservation;
+use Illuminate\Support\Facades\Validator;
 
 class ReservationController extends Controller
 {
     public function index()
     {
-        $reservations = Reservation::with('table')->get();
+        $request = request();
+
+        $validator = Validator::make($request->query(), [
+            'status' => ['nullable', 'in:pending,confirmed,cancelled,completed'],
+            'table_id' => ['nullable', 'integer'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->error('Invalid reservation filters', 422, $validator->errors());
+        }
+
+        $filters = $validator->validated();
+
+        $reservations = Reservation::with('table')
+            ->when($filters['status'] ?? null, fn($query, $status) => $query->where('status', $status))
+            ->when(array_key_exists('table_id', $filters), fn($query) => $query->where('table_id', $filters['table_id']))
+            ->when($filters['date'] ?? null, fn($query, $date) => $query->whereDate('reservation_at', $date))
+            ->paginate(20);
 
         return $this->success($reservations, 'Reservations retrieved successfully');
     }
