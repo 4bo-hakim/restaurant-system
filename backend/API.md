@@ -20,6 +20,72 @@ Authorization: Bearer {token}
 
 Tokens are obtained via the `/login` endpoint and are valid for the duration of your session. Logout invalidates the current token.
 
+## Localization
+
+The API supports English (`en`), Arabic (`ar`), and Kurdish (`ku`) for translatable fields such as `name` and `description`.
+
+To select a response language, optionally send the following header with any request:
+
+```http
+X-Locale: ar
+```
+
+The accepted values are `en`, `ar`, and `ku`. If `X-Locale` is not provided, the API uses the standard `Accept-Language` header as a fallback. For example, `Accept-Language: ar-IQ,ar;q=0.9,en;q=0.8` selects Arabic by extracting the primary language code.
+
+If neither header is present or contains a supported language, the API defaults to English (`en`). `X-Locale` takes precedence when both headers are provided.
+
+### Admin Translation Responses
+
+Admin category, sub-category, and food endpoints always return all translations together, regardless of the locale headers sent. This applies to `GET`, `POST`, and `PUT` requests for:
+
+- `/admin/categories`
+- `/admin/sub-categories`
+- `/admin/foods`
+
+For example:
+
+```json
+{
+    "name": {
+        "en": "Pizza",
+        "ar": "بيتزا",
+        "ku": "پیزا"
+    }
+}
+```
+
+This full translation object is intentional so administrators can view and edit all languages at once.
+
+### Public Menu Translation Responses
+
+`GET /menu` (full URL: `GET /api/menu`) is the only endpoint that resolves translatable fields to one locale-specific string.
+
+Arabic request:
+
+```http
+GET http://127.0.0.1:8000/api/menu
+X-Locale: ar
+```
+
+```json
+{
+    "name": "بيتزا"
+}
+```
+
+The same request with English selected:
+
+```http
+GET http://127.0.0.1:8000/api/menu
+X-Locale: en
+```
+
+```json
+{
+    "name": "Pizza"
+}
+```
+
 ### Standard Response Format
 
 All responses follow this envelope structure:
