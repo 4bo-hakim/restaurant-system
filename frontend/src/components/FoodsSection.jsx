@@ -7,6 +7,9 @@ export default function FoodsSection({ authHeaders }) {
   const [subCategories, setSubCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [form, setForm] = useState({
     name_en: "", name_ar: "", name_ku: "",
     description_en: "", description_ar: "", description_ku: "",
@@ -16,19 +19,25 @@ export default function FoodsSection({ authHeaders }) {
   const [imagePreview, setImagePreview] = useState(null);
   const [editingId, setEditingId] = useState(null);
 
-  const fetchData = async () => {
+  const fetchData = async (targetPage = page) => {
     setLoading(true);
     setError("");
     try {
       const [foodRes, subRes] = await Promise.all([
-        fetch(`${API_BASE}/admin/foods`, { headers: authHeaders }),
+        fetch(`${API_BASE}/admin/foods?page=${targetPage}`, { headers: authHeaders }),
         fetch(`${API_BASE}/admin/sub-categories`, { headers: authHeaders }),
       ]);
       if (!foodRes.ok || !subRes.ok) throw new Error("Failed to load data");
       const foodData = await foodRes.json();
       const subData = await subRes.json();
-      setFoods(foodData.data || []);
-      setSubCategories(subData.data || []);
+
+      const paginated = foodData.data?.data;
+      setFoods(paginated || foodData.data || []);
+      setPage(foodData.data?.current_page || 1);
+      setLastPage(foodData.data?.last_page || 1);
+      setTotal(foodData.data?.total ?? (foodData.data?.length || 0));
+
+      setSubCategories(subData.data?.data || subData.data || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -37,9 +46,14 @@ export default function FoodsSection({ authHeaders }) {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const goToPage = (p) => {
+    if (p < 1 || p > lastPage) return;
+    fetchData(p);
+  };
 
   const resetForm = () => {
     setForm({
@@ -92,7 +106,7 @@ export default function FoodsSection({ authHeaders }) {
         throw new Error(errData?.message || "Failed to save food");
       }
       resetForm();
-      fetchData();
+      fetchData(editingId ? page : 1);
     } catch (err) {
       setError(err.message);
     }
@@ -118,7 +132,7 @@ export default function FoodsSection({ authHeaders }) {
         const errData = await res.json().catch(() => null);
         throw new Error(errData?.message || "Failed to delete food");
       }
-      fetchData();
+      fetchData(page);
     } catch (err) {
       setError(err.message);
     }
@@ -189,42 +203,50 @@ export default function FoodsSection({ authHeaders }) {
         </div>
       </form>
 
-      <h2 className="admin-subtitle">All foods</h2>
+      <h2 className="admin-subtitle">All foods ({total})</h2>
       {loading ? (
         <p>Loading...</p>
       ) : (
-        <div className="admin-table-wrapper">
-          <table className="admin-table">
-            <thead>
-              <tr><th>Image</th><th>Name (EN)</th><th>Sub-category</th><th>Price</th><th>Available</th><th>Actions</th></tr>
-            </thead>
-            <tbody>
-              {foods.map((f) => (
-                <tr key={f.id}>
-                  <td>
-                    {f.image_path ? (
-                      <img
-                        src={`http://127.0.0.1:8000/storage/${f.image_path}`}
-                        alt=""
-                        style={{ width: 50, height: 50, objectFit: "cover", borderRadius: 6 }}
-                      />
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td>{f.name?.en || "-"}</td>
-                  <td>{f.sub_category?.name?.en || subCategoryName(f.sub_category_id)}</td>
-                  <td>{f.price}</td>
-                  <td>{f.is_available ? "Yes" : "No"}</td>
-                  <td>
-                    <button className="admin-btn-small" onClick={() => handleEdit(f)}>Edit</button>
-                    <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(f.id)}>Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
+              <thead>
+                <tr><th>Image</th><th>Name (EN)</th><th>Sub-category</th><th>Price</th><th>Available</th><th>Actions</th></tr>
+              </thead>
+              <tbody>
+                {foods.map((f) => (
+                  <tr key={f.id}>
+                    <td>
+                      {f.image_path ? (
+                        <img
+                          src={`http://127.0.0.1:8000/storage/${f.image_path}`}
+                          alt=""
+                          style={{ width: 50, height: 50, objectFit: "cover", borderRadius: 6 }}
+                        />
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td>{f.name?.en || "-"}</td>
+                    <td>{f.sub_category?.name?.en || subCategoryName(f.sub_category_id)}</td>
+                    <td>{f.price}</td>
+                    <td>{f.is_available ? "Yes" : "No"}</td>
+                    <td>
+                      <button className="admin-btn-small" onClick={() => handleEdit(f)}>Edit</button>
+                      <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(f.id)}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="pagination-controls">
+            <button className="pagination-btn" onClick={() => goToPage(page - 1)} disabled={page <= 1}>← Previous</button>
+            <span className="pagination-info">Page {page} of {lastPage}</span>
+            <button className="pagination-btn" onClick={() => goToPage(page + 1)} disabled={page >= lastPage}>Next →</button>
+          </div>
+        </>
       )}
     </>
   );

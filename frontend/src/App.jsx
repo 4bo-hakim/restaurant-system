@@ -7,6 +7,8 @@ import ChefPage from "./pages/ChefPage";
 import CashierPage from "./pages/CashierPage";
 import AdminPage from "./pages/AdminPage";
 import ProtectedRoute from "./ProtectedRoute";
+import PublicMenuPage from "./pages/PublicMenuPage";
+import MenuIntroPage from "./pages/MenuIntroPage";
 
 function App() {
   return (
@@ -31,6 +33,10 @@ function App() {
             path="/admin"
             element={<ProtectedRoute allowedRole="admin"><AdminPage /></ProtectedRoute>}
           />
+          <Route path="/menu" element={<PublicMenuPage />} 
+          />
+          <Route path="/menu-intro" element={<MenuIntroPage />}
+           />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
