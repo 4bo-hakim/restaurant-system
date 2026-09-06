@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use App\Models\InvoiceFood;
 use App\Observers\InvoiceFoodObserver;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,6 +27,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('api', function (Request $request) {
+            return $request->user()
+                ? Limit::perMinute(300)->by('user:' . $request->user()->getAuthIdentifier())
+                : Limit::perMinute(60)->by('ip:' . $request->ip());
+        });
+
         InvoiceFood::observe(InvoiceFoodObserver::class);
     }
 }

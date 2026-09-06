@@ -568,6 +568,20 @@ Creates a new authentication token for a user.
 }
 ```
 
+**Rate Limiting:**
+
+- In `production`, login is limited to 5 requests per minute per client throttle key, typically the client IP address for unauthenticated requests.
+- In `local` and `testing`, the login-specific 5-per-minute throttle is disabled so development and automated tests are not interrupted.
+- All API endpoints also use the named `api` limiter as a baseline: 60 requests per minute per IP for unauthenticated requests and 300 requests per minute per authenticated user ID.
+- When a rate limit is exceeded, the API returns `429 Too Many Requests` and includes a `Retry-After` response header indicating when another request may be attempted.
+
+Example rate-limit response:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 60
+```
+
 ---
 
 ### 2. Get Current User

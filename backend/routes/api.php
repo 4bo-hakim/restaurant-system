@@ -21,7 +21,8 @@ Route::middleware('auth:sanctum')->get('/test', function () {
     return \App\Models\Food::limit(20)->get();
 });
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware(app()->environment('production') ? ['throttle:5,1'] : []);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::get('/menu', [PublicMenuController::class, 'index']);
 
