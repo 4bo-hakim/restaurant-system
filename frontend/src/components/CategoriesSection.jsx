@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import { adminT, t } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 
-export default function CategoriesSection({ authHeaders }) {
+export default function CategoriesSection({ authHeaders, lang }) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -16,7 +17,7 @@ export default function CategoriesSection({ authHeaders }) {
       const res = await fetch(`${API_BASE}/admin/categories`, { headers: authHeaders });
       if (!res.ok) throw new Error("Failed to load categories");
       const data = await res.json();
-      setCategories(data.data || []);
+      setCategories(data.data?.data || data.data || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -67,7 +68,7 @@ export default function CategoriesSection({ authHeaders }) {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this category?")) return;
+    if (!window.confirm(t(adminT.common, "confirmDelete", lang))) return;
     try {
       const res = await fetch(`${API_BASE}/admin/categories/${id}`, { method: "DELETE", headers: authHeaders });
       if (!res.ok) {
@@ -82,31 +83,39 @@ export default function CategoriesSection({ authHeaders }) {
 
   return (
     <>
-      <h1 className="admin-title">Manage categories</h1>
+      <h1 className="admin-title">{t(adminT.categories, "title", lang)}</h1>
       {error && <div className="admin-error">{error}</div>}
 
       <form className="admin-form" onSubmit={handleSubmit}>
-        <h2>{editingId ? "Update category" : "Add new category"}</h2>
+        <h2>{editingId ? t(adminT.categories, "updateCategory", lang) : t(adminT.categories, "addNew", lang)}</h2>
         <div className="admin-form-row">
-          <input placeholder="Name (English)" value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} required />
+          <input placeholder={t(adminT.categories, "nameEn", lang)} value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} required />
         </div>
         <div className="admin-form-row">
-          <input placeholder="Name (Arabic)" value={form.name_ar} onChange={(e) => setForm({ ...form, name_ar: e.target.value })} required />
-          <input placeholder="Name (Kurdish)" value={form.name_ku} onChange={(e) => setForm({ ...form, name_ku: e.target.value })} required />
+          <input placeholder={t(adminT.categories, "nameAr", lang)} value={form.name_ar} onChange={(e) => setForm({ ...form, name_ar: e.target.value })} required />
+          <input placeholder={t(adminT.categories, "nameKu", lang)} value={form.name_ku} onChange={(e) => setForm({ ...form, name_ku: e.target.value })} required />
         </div>
         <div className="admin-form-actions">
-          <button type="submit" className="admin-btn-primary">{editingId ? "Update" : "Add"}</button>
-          {editingId && <button type="button" className="admin-btn-secondary" onClick={resetForm}>Cancel</button>}
+          <button type="submit" className="admin-btn-primary">{editingId ? t(adminT.common, "update", lang) : t(adminT.common, "add", lang)}</button>
+          {editingId && <button type="button" className="admin-btn-secondary" onClick={resetForm}>{t(adminT.common, "cancel", lang)}</button>}
         </div>
       </form>
 
-      <h2 className="admin-subtitle">All categories</h2>
+      <h2 className="admin-subtitle">{t(adminT.categories, "allCategories", lang)}</h2>
       {loading ? (
-        <p>Loading...</p>
+        <p>{t(adminT.common, "loading", lang)}</p>
       ) : (
         <div className="admin-table-wrapper">
           <table className="admin-table">
-            <thead><tr><th>Name (EN)</th><th>Name (AR)</th><th>Name (KU)</th><th>Sub-categories</th><th>Actions</th></tr></thead>
+            <thead>
+              <tr>
+                <th>{t(adminT.categories, "nameEn", lang)}</th>
+                <th>{t(adminT.categories, "nameAr", lang)}</th>
+                <th>{t(adminT.categories, "nameKu", lang)}</th>
+                <th>{t(adminT.categories, "subCategoriesCount", lang)}</th>
+                <th>{t(adminT.common, "actions", lang)}</th>
+              </tr>
+            </thead>
             <tbody>
               {categories.map((c) => (
                 <tr key={c.id}>
@@ -115,8 +124,8 @@ export default function CategoriesSection({ authHeaders }) {
                   <td>{c.name?.ku || "-"}</td>
                   <td>{c.sub_categories_count ?? "-"}</td>
                   <td>
-                    <button className="admin-btn-small" onClick={() => handleEdit(c)}>Edit</button>
-                    <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(c.id)}>Delete</button>
+                    <button className="admin-btn-small" onClick={() => handleEdit(c)}>{t(adminT.common, "edit", lang)}</button>
+                    <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(c.id)}>{t(adminT.common, "delete", lang)}</button>
                   </td>
                 </tr>
               ))}

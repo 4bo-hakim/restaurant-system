@@ -3,10 +3,10 @@ import "../styles/PublicMenuPage.css";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 
-const getLocalized = (field, lang) => {
+const getLocalized = (field) => {
   if (!field) return "";
   if (typeof field === "string") return field;
-  return field[lang] || field.en || Object.values(field)[0] || "";
+  return field.en || Object.values(field)[0] || "";
 };
 
 const SIZE_RANK = { L: 0, M: 1, S: 2 };
@@ -14,6 +14,18 @@ const getSizeRank = (size) => {
   if (!size) return 3;
   const letter = size.trim().charAt(0).toUpperCase();
   return SIZE_RANK[letter] ?? 3;
+};
+
+const SIZE_LABELS = {
+  L: { en: "Large", ar: "كبير", ku: "گەورە" },
+  M: { en: "Medium", ar: "وسط", ku: "ناوەند" },
+  S: { en: "Small", ar: "صغير", ku: "بچووک" },
+};
+
+const translateSize = (size, lang) => {
+  if (!size) return "";
+  const letter = size.trim().charAt(0).toUpperCase();
+  return SIZE_LABELS[letter]?.[lang] || size;
 };
 
 const groupFoodsByName = (foods) => {
@@ -46,6 +58,14 @@ const LANGUAGES = [
 
 const SEARCH_PLACEHOLDER = { en: "Search menu...", ar: "ابحث في القائمة...", ku: "لە مینیو بگەڕێ..." };
 
+const UI_TEXT = {
+  brandName: { en: "Our Restaurant", ar: "مطعمنا", ku: "چێشتخانەکەمان" },
+  noResults: { en: "No results found", ar: "لا توجد نتائج", ku: "هیچ ئەنجامێک نەدۆزرایەوە" },
+  loading: { en: "Loading menu...", ar: "جاري تحميل القائمة...", ku: "مینیو بار دەکرێت..." },
+  noMenu: { en: "No menu items available right now.", ar: "لا توجد عناصر قائمة متاحة حالياً.", ku: "لە ئێستادا هیچ خواردنێک بەردەست نییە." },
+  loadError: { en: "Failed to load menu", ar: "فشل تحميل القائمة", ku: "بارکردنی مینیو سەرکەوتوو نەبوو" },
+};
+
 export default function PublicMenuPage() {
   const [menu, setMenu] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,16 +76,23 @@ export default function PublicMenuPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [promoIndex, setPromoIndex] = useState(0);
+  const [highlightFoodKey, setHighlightFoodKey] = useState(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const isRTL = lang === "ar" || lang === "ku";
 
   const sectionRefs = useRef({});
   const navRefs = useRef({});
   const navScrollRef = useRef(null);
+  const foodCardRefs = useRef({});
 
   useEffect(() => {
     const fetchMenu = async () => {
+      setLoading(true);
+      setError("");
       try {
-        const res = await fetch(`${API_BASE}/menu`, { headers: { Accept: "application/json" } });
+        const res = await fetch(`${API_BASE}/menu`, {
+          headers: { Accept: "application/json", "X-Locale": lang },
+        });
         if (!res.ok) throw new Error("Failed to load menu");
         const data = await res.json();
         setMenu(data.data || []);
@@ -76,7 +103,24 @@ export default function PublicMenuPage() {
       }
     };
     fetchMenu();
+  }, [lang]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearchQuery("");
+  };
 
   const changeLanguage = (code) => {
     setLang(code);
@@ -96,8 +140,8 @@ export default function PublicMenuPage() {
 
   const allSubCategories = menu.flatMap((cat) =>
     (cat.sub_categories || []).map((sub) => ({
-      id: slugify(getLocalized(sub.name, lang)),
-      name: getLocalized(sub.name, lang),
+      id: slugify(getLocalized(sub.name)),
+      name: getLocalized(sub.name),
       image_path: sub.image_path,
     }))
   );
@@ -140,11 +184,46 @@ export default function PublicMenuPage() {
     }
   };
 
+  const allFoodsFlat = menu.flatMap((cat) =>
+    (cat.sub_categories || []).flatMap((sub) =>
+      (sub.foods || []).map((food) => ({
+        ...food,
+        subId: slugify(getLocalized(sub.name)),
+        foodKey: `${slugify(getLocalized(sub.name))}__${JSON.stringify(food.name)}`,
+      }))
+    )
+  );
+
   const query = searchQuery.trim().toLowerCase();
-  const matchesSearch = (food) => {
-    if (!query) return true;
-    const name = getLocalized(food.name, lang).toLowerCase();
-    return name.includes(query);
+  const searchResults = query
+    ? allFoodsFlat.filter((food) => {
+        if (!food.name) return false;
+        const allNames = typeof food.name === "string" ? [food.name] : Object.values(food.name);
+        return allNames.some((n) => (n || "").toLowerCase().includes(query));
+      })
+    : [];
+
+  const seenKeys = new Set();
+  const dedupedResults = searchResults.filter((food) => {
+    if (seenKeys.has(food.foodKey)) return false;
+    seenKeys.add(food.foodKey);
+    return true;
+  });
+
+  const goToSearchResult = (food) => {
+    setSearchQuery("");
+    setSearchOpen(false);
+    setTimeout(() => {
+      scrollToSub(food.subId);
+      setTimeout(() => {
+        const cardEl = foodCardRefs.current[food.foodKey];
+        if (cardEl) {
+          cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        setHighlightFoodKey(food.foodKey);
+        setTimeout(() => setHighlightFoodKey(null), 2000);
+      }, 400);
+    }, 50);
   };
 
   return (
@@ -152,7 +231,7 @@ export default function PublicMenuPage() {
       <header className="menu-topbar">
         <div className="menu-topbar-left">
           <div className="menu-logo-circle">🍕</div>
-          <span className="menu-brand-name">Our Restaurant</span>
+          <span className="menu-brand-name">{UI_TEXT.brandName[lang]}</span>
         </div>
         <div className="menu-topbar-right">
           <button className="menu-topbar-icon-btn" onClick={() => setSearchOpen((s) => !s)} aria-label="Search">
@@ -181,14 +260,49 @@ export default function PublicMenuPage() {
 
       {searchOpen && (
         <div className="menu-search-bar">
-          <input
-            type="text"
-            autoFocus
-            className="menu-search-input"
-            placeholder={SEARCH_PLACEHOLDER[lang]}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <div className="menu-search-input-row">
+            <input
+              type="text"
+              autoFocus
+              className="menu-search-input"
+              placeholder={SEARCH_PLACEHOLDER[lang]}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button className="menu-search-close-btn" onClick={closeSearch} aria-label="Close search">
+              ✕
+            </button>
+          </div>
+
+          {query && (
+            <div className="menu-search-results">
+              {dedupedResults.length === 0 ? (
+                <p className="menu-search-no-results">{UI_TEXT.noResults[lang]}</p>
+              ) : (
+                dedupedResults.map((food) => (
+                  <button
+                    key={food.foodKey}
+                    className="menu-search-result-row"
+                    onClick={() => goToSearchResult(food)}
+                  >
+                    {food.image_path ? (
+                      <img
+                        src={`http://127.0.0.1:8000/storage/${food.image_path}`}
+                        alt=""
+                        className="menu-search-result-image"
+                      />
+                    ) : (
+                      <div className="menu-search-result-image menu-search-result-image-placeholder">🍽️</div>
+                    )}
+                    <div className="menu-search-result-info">
+                      <span className="menu-search-result-name">{getLocalized(food.name)}</span>
+                      <span className="menu-search-result-price">{food.price}</span>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -239,25 +353,22 @@ export default function PublicMenuPage() {
       )}
 
       <div className="menu-body">
-        {loading && <p className="menu-status">Loading menu...</p>}
-        {error && <p className="menu-status menu-status-error">{error}</p>}
+        {loading && <p className="menu-status">{UI_TEXT.loading[lang]}</p>}
+        {error && <p className="menu-status menu-status-error">{UI_TEXT.loadError[lang]}</p>}
 
         {!loading && !error && menu.length === 0 && (
-          <p className="menu-status">No menu items available right now.</p>
+          <p className="menu-status">{UI_TEXT.noMenu[lang]}</p>
         )}
 
         {menu.map((category) => {
-          const catName = getLocalized(category.name, lang);
+          const catName = getLocalized(category.name);
           return (
             <section key={catName} className="menu-category-section">
               <h2 className="menu-category-title">{catName}</h2>
 
               {category.sub_categories?.map((sub, subIdx) => {
-                const subId = slugify(getLocalized(sub.name, lang));
-                const groupedFoods = groupFoodsByName(sub.foods || []).filter(
-                  (f) => matchesSearch(f)
-                );
-                if (query && groupedFoods.length === 0) return null;
+                const subId = slugify(getLocalized(sub.name));
+                const groupedFoods = groupFoodsByName(sub.foods || []);
 
                 return (
                   <div
@@ -267,39 +378,46 @@ export default function PublicMenuPage() {
                     ref={(el) => (sectionRefs.current[subId] = el)}
                     className="menu-subcategory-block"
                   >
-                    <h3 className="menu-subcategory-title">{getLocalized(sub.name, lang)}</h3>
+                    <h3 className="menu-subcategory-title">{getLocalized(sub.name)}</h3>
 
                     <div className="menu-food-grid">
-                      {groupedFoods.map((food, foodIdx) => (
-                        <div key={foodIdx} className="menu-food-card">
-                          {food.image_path ? (
-                            <img
-                              src={`http://127.0.0.1:8000/storage/${food.image_path}`}
-                              alt={getLocalized(food.name, lang)}
-                              className="menu-food-image"
-                            />
-                          ) : (
-                            <div className="menu-food-image menu-food-image-placeholder">🍽️</div>
-                          )}
-
-                          <div className="menu-food-info">
-                            <h4 className="menu-food-name">{getLocalized(food.name, lang)}</h4>
-                            {food.description && getLocalized(food.description, lang) && (
-                              <p className="menu-food-desc">{getLocalized(food.description, lang)}</p>
+                      {groupedFoods.map((food, foodIdx) => {
+                        const foodKey = `${subId}__${JSON.stringify(food.name)}`;
+                        return (
+                          <div
+                            key={foodIdx}
+                            ref={(el) => (foodCardRefs.current[foodKey] = el)}
+                            className={`menu-food-card ${highlightFoodKey === foodKey ? "menu-food-card-highlight" : ""}`}
+                          >
+                            {food.image_path ? (
+                              <img
+                                src={`http://127.0.0.1:8000/storage/${food.image_path}`}
+                                alt={getLocalized(food.name)}
+                                className="menu-food-image"
+                              />
+                            ) : (
+                              <div className="menu-food-image menu-food-image-placeholder">🍽️</div>
                             )}
 
-                            <div className="menu-food-sizes">
-                              {food.sizes.map((s, i) => (
-                                <div key={i} className="menu-food-size-row">
-                                  {s.size && <span className="menu-food-size-label">{s.size}</span>}
-                                  <span className="menu-food-size-dots"></span>
-                                  <span className="menu-food-size-price">{s.price}</span>
-                                </div>
-                              ))}
+                            <div className="menu-food-info">
+                              <h4 className="menu-food-name">{getLocalized(food.name)}</h4>
+                              {food.description && getLocalized(food.description) && (
+                                <p className="menu-food-desc">{getLocalized(food.description)}</p>
+                              )}
+
+                              <div className="menu-food-sizes">
+                                {food.sizes.map((s, i) => (
+                                  <div key={i} className="menu-food-size-row">
+                                    {s.size && <span className="menu-food-size-label">{translateSize(s.size, lang)}</span>}
+                                    <span className="menu-food-size-dots"></span>
+                                    <span className="menu-food-size-price">{s.price}</span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -308,6 +426,12 @@ export default function PublicMenuPage() {
           );
         })}
       </div>
+
+      {showBackToTop && (
+        <button className="back-to-top-btn" onClick={scrollToTop} aria-label="Back to top">
+          ↑
+        </button>
+      )}
     </div>
   );
 }
