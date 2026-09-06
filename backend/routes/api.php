@@ -56,8 +56,8 @@ Route::prefix('admin')->middleware(['auth:sanctum'])->group(function () {
     Route::delete('/foods/{food}', [FoodController::class, 'destroy'])->middleware('permission:delete_food');
 
     // Users routes
-    Route::get('/users', [UserController::class, 'index']);
-    Route::get('/users/{user}', [UserController::class, 'show']);
+    Route::get('/users', [UserController::class, 'index'])->middleware('permission:view_users');
+    Route::get('/users/{user}', [UserController::class, 'show'])->middleware('permission:view_users');
     Route::post('/users', [UserController::class, 'store'])->middleware('permission:create_user');
     Route::put('/users/{user}', [UserController::class, 'update'])->middleware('permission:update_user');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->middleware('permission:delete_user');
