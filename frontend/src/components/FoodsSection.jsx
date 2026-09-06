@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import { adminT, t } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 
-export default function FoodsSection({ authHeaders }) {
+export default function FoodsSection({ authHeaders, lang }) {
   const [foods, setFoods] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,12 +32,10 @@ export default function FoodsSection({ authHeaders }) {
       const foodData = await foodRes.json();
       const subData = await subRes.json();
 
-      const paginated = foodData.data?.data;
-      setFoods(paginated || foodData.data || []);
+      setFoods(foodData.data?.data || foodData.data || []);
       setPage(foodData.data?.current_page || 1);
       setLastPage(foodData.data?.last_page || 1);
       setTotal(foodData.data?.total ?? (foodData.data?.length || 0));
-
       setSubCategories(subData.data?.data || subData.data || []);
     } catch (err) {
       setError(err.message);
@@ -90,9 +89,7 @@ export default function FoodsSection({ authHeaders }) {
       formData.append("price", form.price);
       formData.append("is_available", form.is_available ? "1" : "0");
       formData.append("sub_category_id", form.sub_category_id);
-      if (imageFile) {
-        formData.append("image_path", imageFile);
-      }
+      if (imageFile) formData.append("image_path", imageFile);
 
       let url = `${API_BASE}/admin/foods`;
       if (editingId) {
@@ -125,7 +122,7 @@ export default function FoodsSection({ authHeaders }) {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this food item?")) return;
+    if (!window.confirm(t(adminT.common, "confirmDelete", lang))) return;
     try {
       const res = await fetch(`${API_BASE}/admin/foods/${id}`, { method: "DELETE", headers: authHeaders });
       if (!res.ok) {
@@ -142,98 +139,91 @@ export default function FoodsSection({ authHeaders }) {
 
   return (
     <>
-      <h1 className="admin-title">Manage foods</h1>
+      <h1 className="admin-title">{t(adminT.foods, "title", lang)}</h1>
       {error && <div className="admin-error">{error}</div>}
 
       <form className="admin-form" onSubmit={handleSubmit}>
-        <h2>{editingId ? "Update food" : "Add new food"}</h2>
+        <h2>{editingId ? t(adminT.foods, "updateFood", lang) : t(adminT.foods, "addNew", lang)}</h2>
 
         <div className="admin-form-row">
-          <input placeholder="Name (English)" value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} required />
+          <input placeholder={t(adminT.foods, "nameEn", lang)} value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} required />
           <select value={form.sub_category_id} onChange={(e) => setForm({ ...form, sub_category_id: e.target.value })} required>
-            <option value="">Select sub-category</option>
+            <option value="">{t(adminT.foods, "selectSubCategory", lang)}</option>
             {subCategories.map((s) => <option key={s.id} value={s.id}>{s.name?.en}</option>)}
           </select>
         </div>
         <div className="admin-form-row">
-          <input placeholder="Name (Arabic)" value={form.name_ar} onChange={(e) => setForm({ ...form, name_ar: e.target.value })} required />
-          <input placeholder="Name (Kurdish)" value={form.name_ku} onChange={(e) => setForm({ ...form, name_ku: e.target.value })} required />
+          <input placeholder={t(adminT.foods, "nameAr", lang)} value={form.name_ar} onChange={(e) => setForm({ ...form, name_ar: e.target.value })} required />
+          <input placeholder={t(adminT.foods, "nameKu", lang)} value={form.name_ku} onChange={(e) => setForm({ ...form, name_ku: e.target.value })} required />
         </div>
 
         <div className="admin-form-row">
-          <input placeholder="Description (English)" value={form.description_en} onChange={(e) => setForm({ ...form, description_en: e.target.value })} />
+          <input placeholder={t(adminT.foods, "descEn", lang)} value={form.description_en} onChange={(e) => setForm({ ...form, description_en: e.target.value })} />
         </div>
         <div className="admin-form-row">
-          <input placeholder="Description (Arabic)" value={form.description_ar} onChange={(e) => setForm({ ...form, description_ar: e.target.value })} />
-          <input placeholder="Description (Kurdish)" value={form.description_ku} onChange={(e) => setForm({ ...form, description_ku: e.target.value })} />
+          <input placeholder={t(adminT.foods, "descAr", lang)} value={form.description_ar} onChange={(e) => setForm({ ...form, description_ar: e.target.value })} />
+          <input placeholder={t(adminT.foods, "descKu", lang)} value={form.description_ku} onChange={(e) => setForm({ ...form, description_ku: e.target.value })} />
         </div>
 
         <div className="admin-form-row">
-          <input placeholder="Size (optional)" value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
-          <input type="number" placeholder="Price" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
+          <input placeholder={t(adminT.foods, "size", lang)} value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
+          <input type="number" placeholder={t(adminT.foods, "price", lang)} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
         </div>
 
         <div className="admin-form-row">
           <label className="permission-checkbox" style={{ flex: 1 }}>
             <input type="checkbox" checked={form.is_available} onChange={(e) => setForm({ ...form, is_available: e.target.checked })} />
-            Available
+            {t(adminT.foods, "available", lang)}
           </label>
         </div>
 
         <div className="admin-form-row">
           <div>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml"
-              onChange={handleImageChange}
-            />
+            <input type="file" accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml" onChange={handleImageChange} />
             {imagePreview && (
-              <img
-                src={imagePreview}
-                alt="Preview"
-                style={{ maxWidth: 120, maxHeight: 120, marginTop: 8, borderRadius: 8, display: "block" }}
-              />
+              <img src={imagePreview} alt="Preview" style={{ maxWidth: 120, maxHeight: 120, marginTop: 8, borderRadius: 8, display: "block" }} />
             )}
           </div>
         </div>
 
         <div className="admin-form-actions">
-          <button type="submit" className="admin-btn-primary">{editingId ? "Update" : "Add"}</button>
-          {editingId && <button type="button" className="admin-btn-secondary" onClick={resetForm}>Cancel</button>}
+          <button type="submit" className="admin-btn-primary">{editingId ? t(adminT.common, "update", lang) : t(adminT.common, "add", lang)}</button>
+          {editingId && <button type="button" className="admin-btn-secondary" onClick={resetForm}>{t(adminT.common, "cancel", lang)}</button>}
         </div>
       </form>
 
-      <h2 className="admin-subtitle">All foods ({total})</h2>
+      <h2 className="admin-subtitle">{t(adminT.foods, "allFoods", lang)} ({total})</h2>
       {loading ? (
-        <p>Loading...</p>
+        <p>{t(adminT.common, "loading", lang)}</p>
       ) : (
         <>
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
-                <tr><th>Image</th><th>Name (EN)</th><th>Sub-category</th><th>Price</th><th>Available</th><th>Actions</th></tr>
+                <tr>
+                  <th>{t(adminT.foods, "image", lang)}</th>
+                  <th>{t(adminT.foods, "nameEn", lang)}</th>
+                  <th>{t(adminT.foods, "subCategoryColumn", lang)}</th>
+                  <th>{t(adminT.foods, "priceColumn", lang)}</th>
+                  <th>{t(adminT.foods, "availableColumn", lang)}</th>
+                  <th>{t(adminT.common, "actions", lang)}</th>
+                </tr>
               </thead>
               <tbody>
                 {foods.map((f) => (
                   <tr key={f.id}>
                     <td>
                       {f.image_path ? (
-                        <img
-                          src={`http://127.0.0.1:8000/storage/${f.image_path}`}
-                          alt=""
-                          style={{ width: 50, height: 50, objectFit: "cover", borderRadius: 6 }}
-                        />
-                      ) : (
-                        "-"
-                      )}
+                        <img src={`http://127.0.0.1:8000/storage/${f.image_path}`} alt="" style={{ width: 50, height: 50, objectFit: "cover", borderRadius: 6 }} />
+                      ) : "-"}
                     </td>
                     <td>{f.name?.en || "-"}</td>
                     <td>{f.sub_category?.name?.en || subCategoryName(f.sub_category_id)}</td>
                     <td>{f.price}</td>
-                    <td>{f.is_available ? "Yes" : "No"}</td>
+                    <td>{f.is_available ? t(adminT.common, "yes", lang) : t(adminT.common, "no", lang)}</td>
                     <td>
-                      <button className="admin-btn-small" onClick={() => handleEdit(f)}>Edit</button>
-                      <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(f.id)}>Delete</button>
+                      <button className="admin-btn-small" onClick={() => handleEdit(f)}>{t(adminT.common, "edit", lang)}</button>
+                      <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(f.id)}>{t(adminT.common, "delete", lang)}</button>
                     </td>
                   </tr>
                 ))}
@@ -242,8 +232,8 @@ export default function FoodsSection({ authHeaders }) {
           </div>
 
           <div className="pagination-controls">
-            <button className="pagination-btn" onClick={() => goToPage(page - 1)} disabled={page <= 1}>← Previous</button>
-            <span className="pagination-info">Page {page} of {lastPage}</span>
+            <button className="pagination-btn" onClick={() => goToPage(page - 1)} disabled={page <= 1}>← {t(adminT.common, "cancel", lang) === "Cancel" ? "Previous" : "Previous"}</button>
+            <span className="pagination-info">{page} / {lastPage}</span>
             <button className="pagination-btn" onClick={() => goToPage(page + 1)} disabled={page >= lastPage}>Next →</button>
           </div>
         </>

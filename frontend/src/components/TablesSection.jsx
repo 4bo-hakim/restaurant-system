@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import { adminT, t } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 
-export default function TablesSection({ authHeaders }) {
+export default function TablesSection({ authHeaders, lang }) {
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -18,7 +19,7 @@ export default function TablesSection({ authHeaders }) {
       const res = await fetch(`${API_BASE}/admin/tables`, { headers: authHeaders });
       if (!res.ok) throw new Error("Failed to load tables");
       const data = await res.json();
-      setTables(data.data || []);
+      setTables(data.data?.data || data.data || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -54,13 +55,13 @@ export default function TablesSection({ authHeaders }) {
     }
   };
 
-  const handleEdit = (t) => {
-    setEditingId(t.id);
-    setTableNumber(t.table_number);
+  const handleEdit = (tItem) => {
+    setEditingId(tItem.id);
+    setTableNumber(tItem.table_number);
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this table?")) return;
+    if (!window.confirm(t(adminT.common, "confirmDelete", lang))) return;
     try {
       const res = await fetch(`${API_BASE}/admin/tables/${id}`, { method: "DELETE", headers: authHeaders });
       if (!res.ok) {
@@ -75,34 +76,34 @@ export default function TablesSection({ authHeaders }) {
 
   return (
     <>
-      <h1 className="admin-title">Manage tables</h1>
+      <h1 className="admin-title">{t(adminT.tables, "title", lang)}</h1>
       {error && <div className="admin-error">{error}</div>}
 
       <form className="admin-form" onSubmit={handleSubmit}>
-        <h2>{editingId ? "Update table" : "Add new table"}</h2>
+        <h2>{editingId ? t(adminT.tables, "updateTable", lang) : t(adminT.tables, "addNew", lang)}</h2>
         <div className="admin-form-row">
-          <input placeholder="Table number (e.g. T-01)" value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} required />
+          <input placeholder={t(adminT.tables, "tableNumberPlaceholder", lang)} value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} required />
         </div>
         <div className="admin-form-actions">
-          <button type="submit" className="admin-btn-primary">{editingId ? "Update" : "Add"}</button>
-          {editingId && <button type="button" className="admin-btn-secondary" onClick={resetForm}>Cancel</button>}
+          <button type="submit" className="admin-btn-primary">{editingId ? t(adminT.common, "update", lang) : t(adminT.common, "add", lang)}</button>
+          {editingId && <button type="button" className="admin-btn-secondary" onClick={resetForm}>{t(adminT.common, "cancel", lang)}</button>}
         </div>
       </form>
 
-      <h2 className="admin-subtitle">All tables</h2>
+      <h2 className="admin-subtitle">{t(adminT.tables, "allTables", lang)}</h2>
       {loading ? (
-        <p>Loading...</p>
+        <p>{t(adminT.common, "loading", lang)}</p>
       ) : (
         <div className="admin-table-wrapper">
           <table className="admin-table">
-            <thead><tr><th>Table number</th><th>Actions</th></tr></thead>
+            <thead><tr><th>{t(adminT.tables, "tableNumberColumn", lang)}</th><th>{t(adminT.common, "actions", lang)}</th></tr></thead>
             <tbody>
-              {tables.map((t) => (
-                <tr key={t.id}>
-                  <td>{t.table_number}</td>
+              {tables.map((tItem) => (
+                <tr key={tItem.id}>
+                  <td>{tItem.table_number}</td>
                   <td>
-                    <button className="admin-btn-small" onClick={() => handleEdit(t)}>Edit</button>
-                    <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(t.id)}>Delete</button>
+                    <button className="admin-btn-small" onClick={() => handleEdit(tItem)}>{t(adminT.common, "edit", lang)}</button>
+                    <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(tItem.id)}>{t(adminT.common, "delete", lang)}</button>
                   </td>
                 </tr>
               ))}

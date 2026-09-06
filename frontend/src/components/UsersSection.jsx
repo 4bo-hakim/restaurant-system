@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { adminT, t, translatePermission } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 const ROLES = ["admin", "waiter", "chef", "cashier"];
@@ -13,7 +14,7 @@ const PERMISSIONS = [
   "create_user", "update_user", "delete_user",
 ];
 
-export default function UsersSection({ authHeaders }) {
+export default function UsersSection({ authHeaders, lang }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -126,7 +127,7 @@ export default function UsersSection({ authHeaders }) {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this user?")) return;
+    if (!window.confirm(t(adminT.common, "confirmDelete", lang))) return;
     try {
       const res = await fetch(`${API_BASE}/admin/users/${id}`, { method: "DELETE", headers: authHeaders });
       if (!res.ok) {
@@ -141,15 +142,15 @@ export default function UsersSection({ authHeaders }) {
 
   return (
     <>
-      <h1 className="admin-title">Manage users</h1>
+      <h1 className="admin-title">{t(adminT.users, "title", lang)}</h1>
       {error && <div className="admin-error">{error}</div>}
 
       <form className="admin-form" onSubmit={handleSubmit}>
-        <h2>{editingId ? "Update user" : "Add new user"}</h2>
+        <h2>{editingId ? t(adminT.users, "updateUser", lang) : t(adminT.users, "addNew", lang)}</h2>
 
         <div className="admin-form-row">
-          <input type="text" name="name" placeholder="Name" value={form.name} onChange={handleChange} required />
-          <input type="email" name="email" placeholder="Email" value={form.email} onChange={handleChange} required />
+          <input type="text" name="name" placeholder={t(adminT.users, "namePlaceholder", lang)} value={form.name} onChange={handleChange} required />
+          <input type="email" name="email" placeholder={t(adminT.users, "emailPlaceholder", lang)} value={form.email} onChange={handleChange} required />
         </div>
         {fieldErrors.name && <div className="field-error">{fieldErrors.name}</div>}
         {fieldErrors.email && <div className="field-error">{fieldErrors.email}</div>}
@@ -159,7 +160,7 @@ export default function UsersSection({ authHeaders }) {
             <input
               type={showPassword ? "text" : "password"}
               name="password"
-              placeholder={editingId ? "New password (optional)" : "Password"}
+              placeholder={editingId ? t(adminT.users, "newPasswordPlaceholder", lang) : t(adminT.users, "passwordPlaceholder", lang)}
               value={form.password}
               onChange={handleChange}
               required={!editingId}
@@ -180,7 +181,7 @@ export default function UsersSection({ authHeaders }) {
             <input
               type={showPassword ? "text" : "password"}
               name="password_confirmation"
-              placeholder="Confirm password"
+              placeholder={t(adminT.users, "confirmPasswordPlaceholder", lang)}
               value={form.password_confirmation}
               onChange={handleChange}
               required={!editingId || form.password.length > 0}
@@ -193,31 +194,43 @@ export default function UsersSection({ authHeaders }) {
         {fieldErrors.password && <div className="field-error">{fieldErrors.password}</div>}
 
         <div className="permissions-box">
-          <span className="permissions-label">Permissions</span>
+          <span className="permissions-label">{t(adminT.users, "permissions", lang)}</span>
           <div className="permissions-grid">
             {PERMISSIONS.map((perm) => (
               <label key={perm} className="permission-checkbox">
                 <input type="checkbox" checked={form.permissions.includes(perm)} onChange={() => togglePermission(perm)} />
-                {perm.replaceAll("_", " ")}
+                {translatePermission(perm, lang)}
               </label>
             ))}
           </div>
         </div>
 
         <div className="admin-form-actions">
-          <button type="submit" className="admin-btn-primary">{editingId ? "Update" : "Add"}</button>
-          {editingId && <button type="button" className="admin-btn-secondary" onClick={resetForm}>Cancel</button>}
+          <button type="submit" className="admin-btn-primary">
+            {editingId ? t(adminT.common, "update", lang) : t(adminT.common, "add", lang)}
+          </button>
+          {editingId && (
+            <button type="button" className="admin-btn-secondary" onClick={resetForm}>
+              {t(adminT.common, "cancel", lang)}
+            </button>
+          )}
         </div>
       </form>
 
-      <h2 className="admin-subtitle">All users</h2>
+      <h2 className="admin-subtitle">{t(adminT.users, "allUsers", lang)}</h2>
       {loading ? (
-        <p>Loading...</p>
+        <p>{t(adminT.common, "loading", lang)}</p>
       ) : (
         <div className="admin-table-wrapper">
           <table className="admin-table">
             <thead>
-              <tr><th>Name</th><th>Email</th><th>Role</th><th>Permissions</th><th>Actions</th></tr>
+              <tr>
+                <th>{t(adminT.common, "name", lang)}</th>
+                <th>{t(adminT.common, "email", lang)}</th>
+                <th>{t(adminT.users, "roleColumn", lang)}</th>
+                <th>{t(adminT.users, "permissions", lang)}</th>
+                <th>{t(adminT.common, "actions", lang)}</th>
+              </tr>
             </thead>
             <tbody>
               {users.map((u) => (
@@ -226,11 +239,13 @@ export default function UsersSection({ authHeaders }) {
                   <td>{u.email}</td>
                   <td>{u.roles?.[0]?.name || "-"}</td>
                   <td className="permission-tags-cell">
-                    <button className="see-all-btn" onClick={() => handleViewUser(u)}>View permissions</button>
+                    <button className="see-all-btn" onClick={() => handleViewUser(u)}>
+                      {t(adminT.users, "viewPermissions", lang)}
+                    </button>
                   </td>
                   <td>
-                    <button className="admin-btn-small" onClick={() => handleEdit(u)}>Edit</button>
-                    <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(u.id)}>Delete</button>
+                    <button className="admin-btn-small" onClick={() => handleEdit(u)}>{t(adminT.common, "edit", lang)}</button>
+                    <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(u.id)}>{t(adminT.common, "delete", lang)}</button>
                   </td>
                 </tr>
               ))}
@@ -245,15 +260,15 @@ export default function UsersSection({ authHeaders }) {
             <button className="modal-close-btn" onClick={() => setViewingUser(null)}>×</button>
             <h2 className="modal-title">{viewingUser.name}</h2>
             <p className="modal-subtitle">
-              Role: {viewingUser.roles?.[0]?.name || "-"} · Permissions ({viewingUser.all_permissions?.length || 0})
+              {t(adminT.users, "roleColumn", lang)}: {viewingUser.roles?.[0]?.name || "-"} · {t(adminT.users, "permissions", lang)} ({viewingUser.all_permissions?.length || 0})
             </p>
             <div className="modal-permissions-list">
               {viewingUser.all_permissions && viewingUser.all_permissions.length > 0 ? (
                 viewingUser.all_permissions.map((p) => (
-                  <span key={p} className="permission-tag">{p.replaceAll("_", " ")}</span>
+                  <span key={p} className="permission-tag">{translatePermission(p, lang)}</span>
                 ))
               ) : (
-                <span className="no-permissions">No direct permissions</span>
+                <span className="no-permissions">{t(adminT.users, "noPermissions", lang)}</span>
               )}
             </div>
           </div>

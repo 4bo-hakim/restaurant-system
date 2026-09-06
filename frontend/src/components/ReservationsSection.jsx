@@ -1,16 +1,14 @@
 import { useState, useEffect } from "react";
+import { adminT, t } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 const STATUSES = ["pending", "confirmed", "cancelled", "completed"];
 
-export default function ReservationsSection({ authHeaders }) {
+export default function ReservationsSection({ authHeaders, lang }) {
   const [reservations, setReservations] = useState([]);
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [page, setPage] = useState(1);
-  const [lastPage, setLastPage] = useState(1);
-  const [total, setTotal] = useState(0);
   const [form, setForm] = useState({
     table_id: "", name: "", phone_number: "",
     reservation_at: "", reservation_end: "", guest_count: 1, status: "pending", note: "",
@@ -19,23 +17,18 @@ export default function ReservationsSection({ authHeaders }) {
 
   const jsonHeaders = { ...authHeaders, "Content-Type": "application/json" };
 
-  const fetchData = async (targetPage = page) => {
+  const fetchData = async () => {
     setLoading(true);
     setError("");
     try {
       const [resRes, tableRes] = await Promise.all([
-        fetch(`${API_BASE}/admin/reservations?page=${targetPage}`, { headers: authHeaders }),
+        fetch(`${API_BASE}/admin/reservations`, { headers: authHeaders }),
         fetch(`${API_BASE}/admin/tables`, { headers: authHeaders }),
       ]);
       if (!resRes.ok || !tableRes.ok) throw new Error("Failed to load data");
       const resData = await resRes.json();
       const tableData = await tableRes.json();
-
       setReservations(resData.data?.data || resData.data || []);
-      setPage(resData.data?.current_page || 1);
-      setLastPage(resData.data?.last_page || 1);
-      setTotal(resData.data?.total ?? (resData.data?.length || 0));
-
       setTables(tableData.data?.data || tableData.data || []);
     } catch (err) {
       setError(err.message);
@@ -45,14 +38,9 @@ export default function ReservationsSection({ authHeaders }) {
   };
 
   useEffect(() => {
-    fetchData(1);
+    fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const goToPage = (p) => {
-    if (p < 1 || p > lastPage) return;
-    fetchData(p);
-  };
 
   const resetForm = () => {
     setForm({
@@ -84,7 +72,7 @@ export default function ReservationsSection({ authHeaders }) {
         throw new Error(errData?.message || "Failed to save reservation");
       }
       resetForm();
-      fetchData(editingId ? page : 1);
+      fetchData();
     } catch (err) {
       setError(err.message);
     }
@@ -102,35 +90,40 @@ export default function ReservationsSection({ authHeaders }) {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this reservation?")) return;
+    if (!window.confirm(t(adminT.common, "confirmDelete", lang))) return;
     try {
       const res = await fetch(`${API_BASE}/admin/reservations/${id}`, { method: "DELETE", headers: authHeaders });
       if (!res.ok) throw new Error("Failed to delete reservation");
-      fetchData(page);
+      fetchData();
     } catch (err) {
       setError(err.message);
     }
   };
 
-  const tableNumber = (id) => tables.find((t) => t.id === id)?.table_number || "-";
+  const tableNumber = (id) => tables.find((tItem) => tItem.id === id)?.table_number || "-";
+
+  const statusLabel = (status) => {
+    const map = { pending: "pending", confirmed: "confirmed", cancelled: "cancelled", completed: "completed" };
+    return t(adminT.dashboard, map[status] || status, lang);
+  };
 
   return (
     <>
-      <h1 className="admin-title">Manage reservations</h1>
+      <h1 className="admin-title">{t(adminT.reservations, "title", lang)}</h1>
       {error && <div className="admin-error">{error}</div>}
 
       <form className="admin-form" onSubmit={handleSubmit}>
-        <h2>{editingId ? "Update reservation" : "Add new reservation"}</h2>
+        <h2>{editingId ? t(adminT.reservations, "updateReservation", lang) : t(adminT.reservations, "addNew", lang)}</h2>
         <div className="admin-form-row">
-          <input placeholder="Guest name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          <input placeholder={t(adminT.reservations, "guestName", lang)} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <select value={form.table_id} onChange={(e) => setForm({ ...form, table_id: e.target.value })} required>
-            <option value="">Select table</option>
-            {tables.map((t) => <option key={t.id} value={t.id}>{t.table_number}</option>)}
+            <option value="">{t(adminT.reservations, "selectTable", lang)}</option>
+            {tables.map((tItem) => <option key={tItem.id} value={tItem.id}>{tItem.table_number}</option>)}
           </select>
         </div>
         <div className="admin-form-row">
-          <input placeholder="Phone number" value={form.phone_number} onChange={(e) => setForm({ ...form, phone_number: e.target.value })} required />
-          <input type="number" min="1" max="50" placeholder="Guest count" value={form.guest_count} onChange={(e) => setForm({ ...form, guest_count: e.target.value })} required />
+          <input placeholder={t(adminT.reservations, "phoneNumber", lang)} value={form.phone_number} onChange={(e) => setForm({ ...form, phone_number: e.target.value })} required />
+          <input type="number" min="1" max="50" placeholder={t(adminT.reservations, "guestCount", lang)} value={form.guest_count} onChange={(e) => setForm({ ...form, guest_count: e.target.value })} required />
         </div>
         <div className="admin-form-row">
           <input type="datetime-local" value={form.reservation_at} onChange={(e) => setForm({ ...form, reservation_at: e.target.value })} required />
@@ -138,47 +131,49 @@ export default function ReservationsSection({ authHeaders }) {
         </div>
         <div className="admin-form-row">
           <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            {STATUSES.map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
           </select>
-          <input placeholder="Note (optional)" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
+          <input placeholder={t(adminT.reservations, "notePlaceholder", lang)} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
         </div>
         <div className="admin-form-actions">
-          <button type="submit" className="admin-btn-primary">{editingId ? "Update" : "Add"}</button>
-          {editingId && <button type="button" className="admin-btn-secondary" onClick={resetForm}>Cancel</button>}
+          <button type="submit" className="admin-btn-primary">{editingId ? t(adminT.common, "update", lang) : t(adminT.common, "add", lang)}</button>
+          {editingId && <button type="button" className="admin-btn-secondary" onClick={resetForm}>{t(adminT.common, "cancel", lang)}</button>}
         </div>
       </form>
 
-      <h2 className="admin-subtitle">All reservations ({total})</h2>
-      {loading ? <p>Loading...</p> : (
-        <>
-          <div className="admin-table-wrapper">
-            <table className="admin-table">
-              <thead><tr><th>Guest</th><th>Table</th><th>Start</th><th>End</th><th>Guests</th><th>Status</th><th>Actions</th></tr></thead>
-              <tbody>
-                {reservations.map((r) => (
-                  <tr key={r.id}>
-                    <td>{r.name}</td>
-                    <td>{r.table?.table_number || tableNumber(r.table_id)}</td>
-                    <td>{new Date(r.reservation_at).toLocaleString()}</td>
-                    <td>{new Date(r.reservation_end).toLocaleString()}</td>
-                    <td>{r.guest_count}</td>
-                    <td>{r.status}</td>
-                    <td>
-                      <button className="admin-btn-small" onClick={() => handleEdit(r)}>Edit</button>
-                      <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(r.id)}>Delete</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="pagination-controls">
-            <button className="pagination-btn" onClick={() => goToPage(page - 1)} disabled={page <= 1}>← Previous</button>
-            <span className="pagination-info">Page {page} of {lastPage}</span>
-            <button className="pagination-btn" onClick={() => goToPage(page + 1)} disabled={page >= lastPage}>Next →</button>
-          </div>
-        </>
+      <h2 className="admin-subtitle">{t(adminT.reservations, "allReservations", lang)}</h2>
+      {loading ? <p>{t(adminT.common, "loading", lang)}</p> : (
+        <div className="admin-table-wrapper">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>{t(adminT.reservations, "guest", lang)}</th>
+                <th>{t(adminT.reservations, "table", lang)}</th>
+                <th>{t(adminT.reservations, "start", lang)}</th>
+                <th>{t(adminT.reservations, "end", lang)}</th>
+                <th>{t(adminT.reservations, "guests", lang)}</th>
+                <th>{t(adminT.reservations, "status", lang)}</th>
+                <th>{t(adminT.common, "actions", lang)}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reservations.map((r) => (
+                <tr key={r.id}>
+                  <td>{r.name}</td>
+                  <td>{r.table?.table_number || tableNumber(r.table_id)}</td>
+                  <td>{new Date(r.reservation_at).toLocaleString()}</td>
+                  <td>{new Date(r.reservation_end).toLocaleString()}</td>
+                  <td>{r.guest_count}</td>
+                  <td>{statusLabel(r.status)}</td>
+                  <td>
+                    <button className="admin-btn-small" onClick={() => handleEdit(r)}>{t(adminT.common, "edit", lang)}</button>
+                    <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(r.id)}>{t(adminT.common, "delete", lang)}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </>
   );
