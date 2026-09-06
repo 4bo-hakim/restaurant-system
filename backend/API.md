@@ -628,7 +628,7 @@ Revokes the current authentication token.
 Retrieves all users with their assigned roles.
 
 **Authentication:** Required (Bearer token)  
-**Permission:** None (available to all authenticated users)
+**Permission:** `view_users` (assigned only to the `admin` role)
 
 **Success Response (200):**
 
@@ -671,7 +671,7 @@ Retrieves all users with their assigned roles.
 Retrieves a specific user with their roles and permissions.
 
 **Authentication:** Required (Bearer token)  
-**Permission:** None
+**Permission:** `view_users` (assigned only to the `admin` role)
 
 **Path Parameters:**
 | Parameter | Type | Required | Notes |
@@ -887,7 +887,8 @@ Retrieves all available roles and permissions in the system.
             "create_table",
             "update_table",
             "delete_table",
-            "manage_reservations"
+            "manage_reservations",
+            "view_users"
         ]
     }
 }
