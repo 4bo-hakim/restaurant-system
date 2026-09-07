@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { adminT, t } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
@@ -9,6 +9,7 @@ export default function CategoriesSection({ authHeaders, lang }) {
   const [error, setError] = useState("");
   const [form, setForm] = useState({ name_en: "", name_ar: "", name_ku: "" });
   const [editingId, setEditingId] = useState(null);
+  const formRef = useRef(null);
 
   const fetchCategories = async () => {
     setLoading(true);
@@ -65,6 +66,7 @@ export default function CategoriesSection({ authHeaders, lang }) {
   const handleEdit = (c) => {
     setEditingId(c.id);
     setForm({ name_en: c.name?.en || "", name_ar: c.name?.ar || "", name_ku: c.name?.ku || "" });
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const handleDelete = async (id) => {
@@ -86,7 +88,7 @@ export default function CategoriesSection({ authHeaders, lang }) {
       <h1 className="admin-title">{t(adminT.categories, "title", lang)}</h1>
       {error && <div className="admin-error">{error}</div>}
 
-      <form className="admin-form" onSubmit={handleSubmit}>
+      <form className="admin-form" onSubmit={handleSubmit} ref={formRef}>
         <h2>{editingId ? t(adminT.categories, "updateCategory", lang) : t(adminT.categories, "addNew", lang)}</h2>
         <div className="admin-form-row">
           <input placeholder={t(adminT.categories, "nameEn", lang)} value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} required />

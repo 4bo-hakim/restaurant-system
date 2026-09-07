@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { adminT, t } from "../adminTranslations";
+import { useState, useEffect, useRef } from "react";
+import { adminT, t, filterT } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 const STATUSES = ["pending", "confirmed", "cancelled", "completed"];
@@ -9,11 +9,15 @@ export default function ReservationsSection({ authHeaders, lang }) {
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterTable, setFilterTable] = useState("");
+  const [filterDate, setFilterDate] = useState("");
   const [form, setForm] = useState({
     table_id: "", name: "", phone_number: "",
     reservation_at: "", reservation_end: "", guest_count: 1, status: "pending", note: "",
   });
   const [editingId, setEditingId] = useState(null);
+  const formRef = useRef(null);
 
   const jsonHeaders = { ...authHeaders, "Content-Type": "application/json" };
 
@@ -21,8 +25,13 @@ export default function ReservationsSection({ authHeaders, lang }) {
     setLoading(true);
     setError("");
     try {
+      const params = new URLSearchParams();
+      if (filterStatus) params.append("status", filterStatus);
+      if (filterTable) params.append("table_id", filterTable);
+      if (filterDate) params.append("date", filterDate);
+
       const [resRes, tableRes] = await Promise.all([
-        fetch(`${API_BASE}/admin/reservations`, { headers: authHeaders }),
+        fetch(`${API_BASE}/admin/reservations?${params.toString()}`, { headers: authHeaders }),
         fetch(`${API_BASE}/admin/tables`, { headers: authHeaders }),
       ]);
       if (!resRes.ok || !tableRes.ok) throw new Error("Failed to load data");
@@ -87,6 +96,7 @@ export default function ReservationsSection({ authHeaders, lang }) {
       reservation_at: toLocalInput(r.reservation_at), reservation_end: toLocalInput(r.reservation_end),
       guest_count: r.guest_count, status: r.status, note: r.note || "",
     });
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const handleDelete = async (id) => {
@@ -112,7 +122,7 @@ export default function ReservationsSection({ authHeaders, lang }) {
       <h1 className="admin-title">{t(adminT.reservations, "title", lang)}</h1>
       {error && <div className="admin-error">{error}</div>}
 
-      <form className="admin-form" onSubmit={handleSubmit}>
+      <form className="admin-form" onSubmit={handleSubmit} ref={formRef}>
         <h2>{editingId ? t(adminT.reservations, "updateReservation", lang) : t(adminT.reservations, "addNew", lang)}</h2>
         <div className="admin-form-row">
           <input placeholder={t(adminT.reservations, "guestName", lang)} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
@@ -140,6 +150,26 @@ export default function ReservationsSection({ authHeaders, lang }) {
           {editingId && <button type="button" className="admin-btn-secondary" onClick={resetForm}>{t(adminT.common, "cancel", lang)}</button>}
         </div>
       </form>
+
+      <div className="admin-form" style={{ maxWidth: 700 }}>
+        <h2>{t(filterT, "filter", lang)}</h2>
+        <div className="admin-form-row">
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+            <option value="">{t(filterT, "allStatuses", lang)}</option>
+            {STATUSES.map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
+          </select>
+          <select value={filterTable} onChange={(e) => setFilterTable(e.target.value)}>
+            <option value="">{t(filterT, "allTables", lang)}</option>
+            {tables.map((tItem) => <option key={tItem.id} value={tItem.id}>{tItem.table_number}</option>)}
+          </select>
+        </div>
+        <div className="admin-form-row">
+          <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} />
+        </div>
+        <div className="admin-form-actions">
+          <button className="admin-btn-primary" onClick={fetchData}>{t(adminT.common, "apply", lang)}</button>
+        </div>
+      </div>
 
       <h2 className="admin-subtitle">{t(adminT.reservations, "allReservations", lang)}</h2>
       {loading ? <p>{t(adminT.common, "loading", lang)}</p> : (

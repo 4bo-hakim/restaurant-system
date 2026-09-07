@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { adminT, t } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
@@ -12,6 +12,7 @@ export default function SubCategoriesSection({ authHeaders, lang }) {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const formRef = useRef(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -87,6 +88,7 @@ export default function SubCategoriesSection({ authHeaders, lang }) {
     setForm({ name_en: s.name?.en || "", name_ar: s.name?.ar || "", name_ku: s.name?.ku || "", category_id: s.category_id });
     setImageFile(null);
     setImagePreview(s.image_path ? `http://127.0.0.1:8000/storage/${s.image_path}` : null);
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const handleDelete = async (id) => {
@@ -110,7 +112,7 @@ export default function SubCategoriesSection({ authHeaders, lang }) {
       <h1 className="admin-title">{t(adminT.subcategories, "title", lang)}</h1>
       {error && <div className="admin-error">{error}</div>}
 
-      <form className="admin-form" onSubmit={handleSubmit}>
+      <form className="admin-form" onSubmit={handleSubmit} ref={formRef}>
         <h2>{editingId ? t(adminT.subcategories, "updateSubCategory", lang) : t(adminT.subcategories, "addNew", lang)}</h2>
         <div className="admin-form-row">
           <input placeholder={t(adminT.categories, "nameEn", lang)} value={form.name_en} onChange={(e) => setForm({ ...form, name_en: e.target.value })} required />

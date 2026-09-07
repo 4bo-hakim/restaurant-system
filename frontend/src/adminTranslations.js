@@ -187,3 +187,13 @@ export const permissionLabels = {
 export const translatePermission = (permKey, lang) => {
   return permissionLabels[permKey]?.[lang] || permissionLabels[permKey]?.en || permKey.replaceAll("_", " ");
 };
+export const filterT = {
+  filter: { en: "Filter", ar: "تصفية", ku: "پاڵاوتن" },
+  searchByName: { en: "Search by name", ar: "البحث بالاسم", ku: "گەڕان بە ناو" },
+  allSubCategories: { en: "All sub-categories", ar: "كل الفئات الفرعية", ku: "هەموو ژێرپۆلەکان" },
+  all: { en: "All", ar: "الكل", ku: "هەموو" },
+  availableOnly: { en: "Available only", ar: "المتوفر فقط", ku: "تەنها بەردەست" },
+  unavailableOnly: { en: "Unavailable only", ar: "غير المتوفر فقط", ku: "تەنها نەبەردەست" },
+  allStatuses: { en: "All statuses", ar: "كل الحالات", ku: "هەموو دۆخەکان" },
+  allTables: { en: "All tables", ar: "كل الطاولات", ku: "هەموو مێزەکان" },
+};

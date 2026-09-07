@@ -106,10 +106,16 @@ export default function DashboardSection({ authHeaders, lang }) {
 
       <div className="admin-form" style={{ maxWidth: 500 }}>
         <h2>{t(adminT.dashboard, "dateRange", lang)}</h2>
-        <div className="admin-form-row">
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        </div>
+                    <div className="admin-form-row date-range-row">
+            <div className="date-input-group">
+                <label className="date-input-label">{t(adminT.reservations, "start", lang)}</label>
+                <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            </div>
+            <div className="date-input-group">
+                <label className="date-input-label">{t(adminT.reservations, "end", lang)}</label>
+                <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            </div>
+            </div>
         <div className="admin-form-actions">
           <button className="admin-btn-primary" onClick={applyFilter}>{t(adminT.common, "apply", lang)}</button>
         </div>
