@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { adminT, t, filterT } from "../adminTranslations";
+import { adminT, t, filterT, translateError } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 
@@ -154,7 +154,7 @@ export default function FoodsSection({ authHeaders, lang }) {
   return (
     <>
       <h1 className="admin-title">{t(adminT.foods, "title", lang)}</h1>
-      {error && <div className="admin-error">{error}</div>}
+      {error && <div className="admin-error">{translateError(error, lang)}</div>}
 
       <form className="admin-form" onSubmit={handleSubmit} ref={formRef}>
         <h2>{editingId ? t(adminT.foods, "updateFood", lang) : t(adminT.foods, "addNew", lang)}</h2>
@@ -175,8 +175,10 @@ export default function FoodsSection({ authHeaders, lang }) {
           <input placeholder={t(adminT.foods, "descEn", lang)} value={form.description_en} onChange={(e) => setForm({ ...form, description_en: e.target.value })} />
         </div>
         <div className="admin-form-row">
-          <input placeholder={t(adminT.foods, "descAr", lang)} value={form.description_ar} onChange={(e) => setForm({ ...form, description_ar: e.target.value })} />
           <input placeholder={t(adminT.foods, "descKu", lang)} value={form.description_ku} onChange={(e) => setForm({ ...form, description_ku: e.target.value })} />
+        </div>
+        <div className="admin-form-row">
+          <input placeholder={t(adminT.foods, "descAr", lang)} value={form.description_ar} onChange={(e) => setForm({ ...form, description_ar: e.target.value })} />
         </div>
 
         <div className="admin-form-row">
@@ -184,10 +186,10 @@ export default function FoodsSection({ authHeaders, lang }) {
           <input type="number" placeholder={t(adminT.foods, "price", lang)} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
         </div>
 
-        <div className="admin-form-row">
-          <label className="permission-checkbox" style={{ flex: 1 }}>
+        <div className="admin-form-row available-row">
+          <label className="available-checkbox-label">
             <input type="checkbox" checked={form.is_available} onChange={(e) => setForm({ ...form, is_available: e.target.checked })} />
-            {t(adminT.foods, "available", lang)}
+            <span>{t(adminT.foods, "available", lang)}</span>
           </label>
         </div>
 

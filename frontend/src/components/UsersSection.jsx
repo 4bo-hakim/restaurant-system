@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { adminT, t, translatePermission } from "../adminTranslations";
+import { adminT, t, translatePermission, translateError } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 const ROLES = ["admin", "waiter", "chef", "cashier"];
@@ -145,7 +145,7 @@ export default function UsersSection({ authHeaders, lang }) {
   return (
     <>
       <h1 className="admin-title">{t(adminT.users, "title", lang)}</h1>
-      {error && <div className="admin-error">{error}</div>}
+      {error && <div className="admin-error">{translateError(error, lang)}</div>}
 
       <form className="admin-form" onSubmit={handleSubmit} ref={formRef}>
         <h2>{editingId ? t(adminT.users, "updateUser", lang) : t(adminT.users, "addNew", lang)}</h2>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { adminT, t, filterT } from "../adminTranslations";
+import { adminT, t, filterT, translateError } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 
@@ -76,7 +76,7 @@ export default function InvoicesSection({ authHeaders, lang }) {
   return (
     <>
       <h1 className="admin-title">{t(adminT.invoices, "title", lang)}</h1>
-      {error && <div className="admin-error">{error}</div>}
+      {error && <div className="admin-error">{translateError(error, lang)}</div>}
        <p style={{ textAlign: "center", color: "#888", marginTop: 30, marginBottom: 20 }}>
        {t(adminT.invoices, "description", lang)}
       </p>

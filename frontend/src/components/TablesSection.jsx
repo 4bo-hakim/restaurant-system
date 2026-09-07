@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { adminT, t } from "../adminTranslations";
+import { adminT, t, translateError } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 
@@ -79,7 +79,7 @@ export default function TablesSection({ authHeaders, lang }) {
   return (
     <>
       <h1 className="admin-title">{t(adminT.tables, "title", lang)}</h1>
-      {error && <div className="admin-error">{error}</div>}
+      {error && <div className="admin-error">{translateError(error, lang)}</div>}
 
       <form className="admin-form" onSubmit={handleSubmit} ref={formRef}>
         <h2>{editingId ? t(adminT.tables, "updateTable", lang) : t(adminT.tables, "addNew", lang)}</h2>

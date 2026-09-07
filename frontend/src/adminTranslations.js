@@ -197,3 +197,31 @@ export const filterT = {
   allStatuses: { en: "All statuses", ar: "كل الحالات", ku: "هەموو دۆخەکان" },
   allTables: { en: "All tables", ar: "كل الطاولات", ku: "هەموو مێزەکان" },
 };
+export const errorT = {
+  "Failed to load users": { en: "Failed to load users", ar: "فشل تحميل المستخدمين", ku: "بارکردنی بەکارهێنەران سەرکەوتوو نەبوو" },
+  "Failed to load user details": { en: "Failed to load user details", ar: "فشل تحميل تفاصيل المستخدم", ku: "بارکردنی وردەکاری بەکارهێنەر سەرکەوتوو نەبوو" },
+  "Failed to save user": { en: "Failed to save user", ar: "فشل حفظ المستخدم", ku: "پاشەکەوتکردنی بەکارهێنەر سەرکەوتوو نەبوو" },
+  "Failed to delete user": { en: "Failed to delete user", ar: "فشل حذف المستخدم", ku: "سڕینەوەی بەکارهێنەر سەرکەوتوو نەبوو" },
+  "Failed to load categories": { en: "Failed to load categories", ar: "فشل تحميل الفئات", ku: "بارکردنی پۆلەکان سەرکەوتوو نەبوو" },
+  "Failed to save category": { en: "Failed to save category", ar: "فشل حفظ الفئة", ku: "پاشەکەوتکردنی پۆل سەرکەوتوو نەبوو" },
+  "Failed to delete category": { en: "Failed to delete category", ar: "فشل حذف الفئة", ku: "سڕینەوەی پۆل سەرکەوتوو نەبوو" },
+  "Failed to load data": { en: "Failed to load data", ar: "فشل تحميل البيانات", ku: "بارکردنی داتا سەرکەوتوو نەبوو" },
+  "Failed to save sub-category": { en: "Failed to save sub-category", ar: "فشل حفظ الفئة الفرعية", ku: "پاشەکەوتکردنی ژێرپۆل سەرکەوتوو نەبوو" },
+  "Failed to delete sub-category": { en: "Failed to delete sub-category", ar: "فشل حذف الفئة الفرعية", ku: "سڕینەوەی ژێرپۆل سەرکەوتوو نەبوو" },
+  "Failed to save food": { en: "Failed to save food", ar: "فشل حفظ الطعام", ku: "پاشەکەوتکردنی خواردن سەرکەوتوو نەبوو" },
+  "Failed to delete food": { en: "Failed to delete food", ar: "فشل حذف الطعام", ku: "سڕینەوەی خواردن سەرکەوتوو نەبوو" },
+  "Failed to load tables": { en: "Failed to load tables", ar: "فشل تحميل الطاولات", ku: "بارکردنی مێزەکان سەرکەوتوو نەبوو" },
+  "Failed to save table": { en: "Failed to save table", ar: "فشل حفظ الطاولة", ku: "پاشەکەوتکردنی مێز سەرکەوتوو نەبوو" },
+  "Failed to delete table": { en: "Failed to delete table", ar: "فشل حذف الطاولة", ku: "سڕینەوەی مێز سەرکەوتوو نەبوو" },
+  "Failed to save reservation": { en: "Failed to save reservation", ar: "فشل حفظ الحجز", ku: "پاشەکەوتکردنی حجزکردن سەرکەوتوو نەبوو" },
+  "Failed to delete reservation": { en: "Failed to delete reservation", ar: "فشل حذف الحجز", ku: "سڕینەوەی حجزکردن سەرکەوتوو نەبوو" },
+  "Failed to update invoice": { en: "Failed to update invoice", ar: "فشل تحديث الفاتورة", ku: "نوێکردنەوەی پسوولە سەرکەوتوو نەبوو" },
+  "Failed to delete invoice": { en: "Failed to delete invoice", ar: "فشل حذف الفاتورة", ku: "سڕینەوەی پسوولە سەرکەوتوو نەبوو" },
+  "Failed to load invoices": { en: "Failed to load invoices", ar: "فشل تحميل الفواتير", ku: "بارکردنی پسوولەکان سەرکەوتوو نەبوو" },
+  "Failed to load dashboard data": { en: "Failed to load dashboard data", ar: "فشل تحميل بيانات لوحة التحكم", ku: "بارکردنی داتای داشبۆرد سەرکەوتوو نەبوو" },
+  "'From' date cannot be after 'To' date": { en: "'From' date cannot be after 'To' date", ar: "تاريخ 'من' لا يمكن أن يكون بعد تاريخ 'إلى'", ku: "بەرواری 'لە' ناتوانێت دوای بەرواری 'بۆ' بێت" },
+};
+
+export const translateError = (message, lang) => {
+  return errorT[message]?.[lang] || message;
+};
