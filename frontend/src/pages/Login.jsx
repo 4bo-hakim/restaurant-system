@@ -8,6 +8,8 @@ const ICONS = ["🍕", "🍔", "🥤"];
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -28,13 +30,16 @@ export default function Login() {
     return items;
   }, []);
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  const success = await login(email, password);
-  if (success) {
-    navigate("/dashboard");
-  }
-};
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    const success = await login(email, password);
+    if (success) {
+      navigate("/dashboard");
+    } else {
+      setError("Your email or password is incorrect");
+    }
+  };
 
   return (
     <div className="login-page">
@@ -58,6 +63,9 @@ export default function Login() {
 
       <form onSubmit={handleSubmit} className="login-box">
         <h2 className="login-title">Staff Login</h2>
+
+        {error && <div className="login-error">{error}</div>}
+
         <input
           type="email"
           placeholder="Email"
@@ -66,14 +74,25 @@ export default function Login() {
           required
           className="login-input"
         />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="login-input"
-        />
+
+        <div className="login-password-wrapper">
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="login-input"
+          />
+          <button
+            type="button"
+            className="login-eye-toggle"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? "🙈" : "👁️"}
+          </button>
+        </div>
+
         <button type="submit" className="login-button">Login</button>
       </form>
     </div>

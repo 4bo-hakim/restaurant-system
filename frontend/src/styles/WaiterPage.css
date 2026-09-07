@@ -385,3 +385,117 @@
     position: static;
   }
 }
+.waiter-lang-inline {
+  color: rgba(0,0,0,0.5);
+  font-size: 12px;
+}
+
+.waiter-logout-left {
+  position: absolute;
+  left: 0;
+}
+
+.waiter-lang-right {
+  position: absolute;
+  right: 0;
+}
+
+.waiter-lang-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  color: rgba(0,0,0,0.5);
+  padding: 0 2px;
+}
+
+.waiter-lang-btn.active {
+  color: var(--primary-red);
+  text-decoration: underline;
+}
+
+.waiter-logout-btn {
+  background: none;
+  border: 2px solid var(--primary-red);
+  color: var(--primary-red);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.waiter-logout-btn:hover {
+  background-color: var(--primary-red);
+  color: var(--white);
+}
+/* ===== Tablet-specific improvements ===== */
+@media (min-width: 701px) and (max-width: 1100px) {
+  .waiter-page {
+    padding: 20px 16px;
+  }
+
+  .grid-boxes {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 16px;
+    max-width: 100%;
+  }
+
+  .grid-box {
+    font-size: 22px;
+  }
+
+  .person-selector {
+    gap: 10px;
+  }
+
+  .person-box {
+    width: 60px;
+    height: 60px;
+    font-size: 20px;
+  }
+
+  .menu-layout {
+    flex-direction: column;
+  }
+
+  .menu-browse,
+  .menu-order {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .menu-order {
+    position: static;
+    order: -1;
+    margin-bottom: 20px;
+  }
+
+  .food-list {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .food-card-image {
+    aspect-ratio: 1.1;
+  }
+
+  .food-info-name {
+    font-size: 15px;
+  }
+
+  .chip {
+    padding: 10px 18px;
+    font-size: 14px;
+  }
+
+  .waiter-title {
+    font-size: 28px;
+  }
+
+  .waiter-back-btn {
+    font-size: 14px;
+    padding: 8px 18px;
+  }
+}
