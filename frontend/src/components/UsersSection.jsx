@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { adminT, t, translatePermission } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
@@ -25,6 +25,7 @@ export default function UsersSection({ authHeaders, lang }) {
   const [showPassword, setShowPassword] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [viewingUser, setViewingUser] = useState(null);
+  const formRef = useRef(null);
 
   const jsonHeaders = { ...authHeaders, "Content-Type": "application/json" };
 
@@ -111,6 +112,7 @@ export default function UsersSection({ authHeaders, lang }) {
         permissions: fullUser.all_permissions || [],
       });
       setFieldErrors({});
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
       setError(err.message);
     }
@@ -145,7 +147,7 @@ export default function UsersSection({ authHeaders, lang }) {
       <h1 className="admin-title">{t(adminT.users, "title", lang)}</h1>
       {error && <div className="admin-error">{error}</div>}
 
-      <form className="admin-form" onSubmit={handleSubmit}>
+      <form className="admin-form" onSubmit={handleSubmit} ref={formRef}>
         <h2>{editingId ? t(adminT.users, "updateUser", lang) : t(adminT.users, "addNew", lang)}</h2>
 
         <div className="admin-form-row">

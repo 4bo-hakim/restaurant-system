@@ -22,6 +22,49 @@
   justify-content: space-between;
 }
 
+.sidebar-lang-wrapper {
+  background-color: var(--admin-primary);
+  padding: 12px 20px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+  margin-bottom: 10px;
+}
+
+.sidebar-lang-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.sidebar-lang-globe {
+  margin-right: 6px;
+}
+
+.sidebar-lang-inline-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px;
+}
+
+.sidebar-lang-inline-btn:hover {
+  color: var(--admin-white);
+}
+
+.sidebar-lang-inline-btn.active {
+  color: var(--admin-white);
+  text-decoration: underline;
+}
+
+.sidebar-lang-sep {
+  color: rgba(255,255,255,0.4);
+  font-size: 12px;
+}
+
 .sidebar-items-top {
   display: flex;
   flex-direction: column;
@@ -125,7 +168,6 @@
   opacity: 1;
 }
 
-/* Users form: Name, Role, Confirm password - dark background, white text */
 input[name="name"],
 select[name="role"],
 input[name="password_confirmation"] {
@@ -139,7 +181,6 @@ input[name="password_confirmation"]::placeholder {
   opacity: 0.7;
 }
 
-/* Users form: Email, Password - gray background, black text */
 input[name="email"],
 input[name="password"] {
   background-color: #e0e0e0 !important;
@@ -502,44 +543,6 @@ input[name="password"]::placeholder {
   padding: 10px 0;
 }
 
-.dashboard-bar-row {
-  margin-bottom: 14px;
-}
-
-.dashboard-bar-row:last-child {
-  margin-bottom: 0;
-}
-
-.dashboard-bar-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  margin-bottom: 6px;
-  color: var(--admin-dark);
-}
-
-.dashboard-bar-meta {
-  color: var(--admin-dark);
-  font-size: 12px;
-}
-
-.dashboard-bar-track {
-  background-color: #f0f0f0;
-  border-radius: 8px;
-  height: 10px;
-  overflow: hidden;
-}
-
-.dashboard-bar-fill {
-  height: 100%;
-  background-color: var(--admin-primary);
-  border-radius: 8px;
-}
-
-.dashboard-bar-fill-blue {
-  background-color: var(--admin-primary);
-}
-
 @media (max-width: 900px) {
   .admin-sidebar {
     width: 70px;
@@ -551,6 +554,12 @@ input[name="password"]::placeholder {
     margin-left: 70px;
     width: calc(100% - 70px);
     padding: 16px 20px 40px;
+  }
+  .sidebar-lang-inline-btn {
+    display: none;
+  }
+  .sidebar-lang-globe {
+    margin-right: 0;
   }
 }
 
@@ -578,4 +587,23 @@ input[name="password"]::placeholder {
   .admin-title {
     font-size: 26px;
   }
+}
+.date-range-row {
+  align-items: flex-start;
+}
+
+.date-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 140px;
+}
+
+.date-input-label {
+  font-size: 12px;
+  font-weight: bold;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }

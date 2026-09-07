@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { adminT, t } from "../adminTranslations";
+import { useState, useEffect, useRef } from "react";
+import { adminT, t, filterT } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 
@@ -11,6 +11,9 @@ export default function FoodsSection({ authHeaders, lang }) {
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState("");
+  const [filterSubCategory, setFilterSubCategory] = useState("");
+  const [filterAvailable, setFilterAvailable] = useState("");
   const [form, setForm] = useState({
     name_en: "", name_ar: "", name_ku: "",
     description_en: "", description_ar: "", description_ku: "",
@@ -19,13 +22,19 @@ export default function FoodsSection({ authHeaders, lang }) {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const formRef = useRef(null);
 
   const fetchData = async (targetPage = page) => {
     setLoading(true);
     setError("");
     try {
+      const params = new URLSearchParams({ page: targetPage });
+      if (search) params.append("search", search);
+      if (filterSubCategory) params.append("sub_category_id", filterSubCategory);
+      if (filterAvailable) params.append("is_available", filterAvailable);
+
       const [foodRes, subRes] = await Promise.all([
-        fetch(`${API_BASE}/admin/foods?page=${targetPage}`, { headers: authHeaders }),
+        fetch(`${API_BASE}/admin/foods?${params.toString()}`, { headers: authHeaders }),
         fetch(`${API_BASE}/admin/sub-categories`, { headers: authHeaders }),
       ]);
       if (!foodRes.ok || !subRes.ok) throw new Error("Failed to load data");
@@ -48,6 +57,10 @@ export default function FoodsSection({ authHeaders, lang }) {
     fetchData(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const applyFilters = () => {
+    fetchData(1);
+  };
 
   const goToPage = (p) => {
     if (p < 1 || p > lastPage) return;
@@ -119,6 +132,7 @@ export default function FoodsSection({ authHeaders, lang }) {
     });
     setImageFile(null);
     setImagePreview(f.image_path ? `http://127.0.0.1:8000/storage/${f.image_path}` : null);
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const handleDelete = async (id) => {
@@ -142,7 +156,7 @@ export default function FoodsSection({ authHeaders, lang }) {
       <h1 className="admin-title">{t(adminT.foods, "title", lang)}</h1>
       {error && <div className="admin-error">{error}</div>}
 
-      <form className="admin-form" onSubmit={handleSubmit}>
+      <form className="admin-form" onSubmit={handleSubmit} ref={formRef}>
         <h2>{editingId ? t(adminT.foods, "updateFood", lang) : t(adminT.foods, "addNew", lang)}</h2>
 
         <div className="admin-form-row">
@@ -192,6 +206,27 @@ export default function FoodsSection({ authHeaders, lang }) {
         </div>
       </form>
 
+      <div className="admin-form" style={{ maxWidth: 700 }}>
+        <h2>{t(filterT, "filter", lang)}</h2>
+        <div className="admin-form-row">
+          <input placeholder={t(filterT, "searchByName", lang)} value={search} onChange={(e) => setSearch(e.target.value)} />
+          <select value={filterSubCategory} onChange={(e) => setFilterSubCategory(e.target.value)}>
+            <option value="">{t(filterT, "allSubCategories", lang)}</option>
+            {subCategories.map((s) => <option key={s.id} value={s.id}>{s.name?.en}</option>)}
+          </select>
+        </div>
+        <div className="admin-form-row">
+          <select value={filterAvailable} onChange={(e) => setFilterAvailable(e.target.value)}>
+            <option value="">{t(filterT, "all", lang)}</option>
+            <option value="1">{t(filterT, "availableOnly", lang)}</option>
+            <option value="0">{t(filterT, "unavailableOnly", lang)}</option>
+          </select>
+        </div>
+        <div className="admin-form-actions">
+          <button className="admin-btn-primary" onClick={applyFilters}>{t(adminT.common, "apply", lang)}</button>
+        </div>
+      </div>
+
       <h2 className="admin-subtitle">{t(adminT.foods, "allFoods", lang)} ({total})</h2>
       {loading ? (
         <p>{t(adminT.common, "loading", lang)}</p>
@@ -232,7 +267,7 @@ export default function FoodsSection({ authHeaders, lang }) {
           </div>
 
           <div className="pagination-controls">
-            <button className="pagination-btn" onClick={() => goToPage(page - 1)} disabled={page <= 1}>← {t(adminT.common, "cancel", lang) === "Cancel" ? "Previous" : "Previous"}</button>
+            <button className="pagination-btn" onClick={() => goToPage(page - 1)} disabled={page <= 1}>← Previous</button>
             <span className="pagination-info">{page} / {lastPage}</span>
             <button className="pagination-btn" onClick={() => goToPage(page + 1)} disabled={page >= lastPage}>Next →</button>
           </div>

@@ -69,9 +69,9 @@ export default function AdminPage() {
         </div>
 
         <div className="sidebar-item sidebar-logout" onClick={logout}>
-          <span className="sidebar-icon">🚪</span>
-          <span>{t(adminT.sidebar, "logout", lang)}</span>
-        </div>
+        <span className="sidebar-icon">↩</span>
+        <span>{t(adminT.sidebar, "logout", lang)}</span>
+      </div>
       </aside>
 
       <main className="admin-main">

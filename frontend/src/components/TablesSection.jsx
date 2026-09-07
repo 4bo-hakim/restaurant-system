@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { adminT, t } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
@@ -9,6 +9,7 @@ export default function TablesSection({ authHeaders, lang }) {
   const [error, setError] = useState("");
   const [tableNumber, setTableNumber] = useState("");
   const [editingId, setEditingId] = useState(null);
+  const formRef = useRef(null);
 
   const jsonHeaders = { ...authHeaders, "Content-Type": "application/json" };
 
@@ -58,6 +59,7 @@ export default function TablesSection({ authHeaders, lang }) {
   const handleEdit = (tItem) => {
     setEditingId(tItem.id);
     setTableNumber(tItem.table_number);
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const handleDelete = async (id) => {
@@ -79,7 +81,7 @@ export default function TablesSection({ authHeaders, lang }) {
       <h1 className="admin-title">{t(adminT.tables, "title", lang)}</h1>
       {error && <div className="admin-error">{error}</div>}
 
-      <form className="admin-form" onSubmit={handleSubmit}>
+      <form className="admin-form" onSubmit={handleSubmit} ref={formRef}>
         <h2>{editingId ? t(adminT.tables, "updateTable", lang) : t(adminT.tables, "addNew", lang)}</h2>
         <div className="admin-form-row">
           <input placeholder={t(adminT.tables, "tableNumberPlaceholder", lang)} value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} required />
