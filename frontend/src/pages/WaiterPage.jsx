@@ -1,23 +1,20 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../AuthContext";
+import { waiterT, t, WAITER_LANGUAGES } from "../waiterTranslations";
 import "../styles/WaiterPage.css";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 const PERSON_COUNT = 8;
 const STAGE_ORDER = ["pending", "preparing", "ready"];
 
-const getLocalized = (field) => {
-  if (!field) return "";
-  if (typeof field === "string") return field;
-  return field.en || Object.values(field)[0] || "";
-};
-
 export default function WaiterPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [step, setStep] = useState("tables"); // tables -> menu
   const [tables, setTables] = useState([]);
   const [selectedTable, setSelectedTable] = useState(null);
   const [selectedPerson, setSelectedPerson] = useState(1);
+  const [lang, setLang] = useState(() => localStorage.getItem("waiterLang") || "en");
+  const isRTL = lang === "ar" || lang === "ku";
 
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
@@ -29,7 +26,7 @@ export default function WaiterPage() {
   const [invoicesByTable, setInvoicesByTable] = useState({});
   const currentInvoice = invoicesByTable[selectedTable] || null;
 
-  const [tableStatus, setTableStatus] = useState({}); // { [tableId]: 'pending' | 'preparing' | 'ready' }
+  const [tableStatus, setTableStatus] = useState({});
 
   const [sentItems, setSentItems] = useState([]);
   const [cartsByTable, setCartsByTable] = useState({});
@@ -40,6 +37,17 @@ export default function WaiterPage() {
     Authorization: `Bearer ${user?.token}`,
   };
   const jsonHeaders = { ...authHeaders, "Content-Type": "application/json" };
+
+  const changeLanguage = (code) => {
+    setLang(code);
+    localStorage.setItem("waiterLang", code);
+  };
+
+  const getLocalized = (field) => {
+    if (!field) return "";
+    if (typeof field === "string") return field;
+    return field[lang] || field.en || Object.values(field)[0] || "";
+  };
 
   useEffect(() => {
     const fetchTables = async () => {
@@ -82,12 +90,12 @@ export default function WaiterPage() {
   };
 
   useEffect(() => {
-  if (step !== "tables") return;
-  refreshTableStatuses();
-  const interval = setInterval(refreshTableStatuses, 5000); // live update every 5s
-  return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [step]);
+    if (step !== "tables") return;
+    refreshTableStatuses();
+    const interval = setInterval(refreshTableStatuses, 5000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   useEffect(() => {
     if (step !== "menu") return;
@@ -104,9 +112,9 @@ export default function WaiterPage() {
         const catData = await catRes.json();
         const subData = await subRes.json();
         const foodData = await foodRes.json();
-        setCategories(catData.data || []);
-        setSubCategories(subData.data || []);
-        setFoods(foodData.data || []);
+        setCategories(catData.data?.data || catData.data || []);
+        setSubCategories(subData.data?.data || subData.data || []);
+        setFoods(foodData.data?.data || foodData.data || []);
       } catch (err) {
         setError(err.message);
       }
@@ -117,7 +125,7 @@ export default function WaiterPage() {
         const foodRes = await fetch(`${API_BASE}/admin/foods`, { headers: authHeaders });
         if (!foodRes.ok) return;
         const foodData = await foodRes.json();
-        setFoods(foodData.data || []);
+        setFoods(foodData.data?.data || foodData.data || []);
       } catch {
         // silently ignore
       }
@@ -139,7 +147,7 @@ export default function WaiterPage() {
           .map((i) => ({
             id: i.id,
             food_id: i.food_id,
-            name: getLocalized(i.food?.name),
+            rawName: i.food?.name,
             price: i.unit_price,
             person_number: i.person_number,
             quantity: i.quantity,
@@ -175,22 +183,23 @@ export default function WaiterPage() {
   }, [step, selectedTable]);
 
   const visibleSubCategories = subCategories.filter((s) => s.category_id === activeCategory);
+
   const SIZE_RANK = { L: 0, M: 1, S: 2 };
+  const getSizeRank = (size) => {
+    if (!size) return 3;
+    const firstLetter = size.trim().charAt(0).toUpperCase();
+    return SIZE_RANK[firstLetter] ?? 3;
+  };
 
-const getSizeRank = (size) => {
-  if (!size) return 3;
-  const firstLetter = size.trim().charAt(0).toUpperCase();
-  return SIZE_RANK[firstLetter] ?? 3;
-};
+  const visibleFoods = foods
+    .filter((f) => f.sub_category_id === activeSubCategory)
+    .sort((a, b) => {
+      const nameA = getLocalized(a.name);
+      const nameB = getLocalized(b.name);
+      if (nameA !== nameB) return nameA.localeCompare(nameB);
+      return getSizeRank(a.size) - getSizeRank(b.size);
+    });
 
-const visibleFoods = foods
-  .filter((f) => f.sub_category_id === activeSubCategory)
-  .sort((a, b) => {
-    const nameA = getLocalized(a.name);
-    const nameB = getLocalized(b.name);
-    if (nameA !== nameB) return nameA.localeCompare(nameB);
-    return getSizeRank(a.size) - getSizeRank(b.size);
-  });
   const liveTotal =
     sentItems.reduce((sum, i) => sum + (i.price || 0) * i.quantity, 0) +
     cart.reduce((sum, c) => sum + c.price * c.quantity, 0);
@@ -207,7 +216,7 @@ const visibleFoods = foods
       } else {
         updatedCart = [
           ...currentCart,
-          { food_id: food.id, name: getLocalized(food.name), price: food.price, person_number: selectedPerson, quantity: 1, note: "" },
+          { food_id: food.id, rawName: food.name, price: food.price, person_number: selectedPerson, quantity: 1, note: "" },
         ];
       }
       return { ...prev, [selectedTable]: updatedCart };
@@ -312,35 +321,46 @@ const visibleFoods = foods
       const refreshed = await fetch(`${API_BASE}/admin/invoices/${invoiceId}`, { headers: authHeaders });
       const refreshedData = await refreshed.json();
       setInvoicesByTable((prev) => ({ ...prev, [selectedTable]: refreshedData.data }));
+      setTableStatus((prev) => ({ ...prev, [selectedTable]: "pending" }));
 
       await loadSentItems(invoiceId);
       setCartsByTable((prev) => ({ ...prev, [selectedTable]: [] }));
-      refreshTableStatuses();
-      alert("Order updated!");
+      alert(t(waiterT, "orderUpdated", lang));
     } catch (err) {
       setError(err.message);
     }
   };
 
   return (
-    <div className="waiter-page">
+    <div className="waiter-page" dir={isRTL ? "rtl" : "ltr"}>
       {step === "tables" && (
         <>
           <div className="waiter-header">
-            <h1 className="waiter-title">Waiter</h1>
+            <button className="waiter-logout-btn waiter-logout-left" onClick={logout}>↩ {t(waiterT, "logout", lang)}</button>
+            <h1 className="waiter-title">{t(waiterT, "title", lang)}</h1>
+            <div className="waiter-lang-inline waiter-lang-right">
+              🌐 {WAITER_LANGUAGES.map((l, i) => (
+                <span key={l.code}>
+                  <button className={`waiter-lang-btn ${lang === l.code ? "active" : ""}`} onClick={() => changeLanguage(l.code)}>
+                    {l.label}
+                  </button>
+                  {i < WAITER_LANGUAGES.length - 1 && " / "}
+                </span>
+              ))}
+            </div>
           </div>
           {error && <div className="admin-error" style={{ maxWidth: 500, margin: "0 auto 20px" }}>{error}</div>}
           <div className="grid-boxes">
-            {tables.map((t) => (
+            {tables.map((tItem) => (
               <button
-                key={t.id}
-                className={`grid-box ${tableStatus[t.id] ? `grid-box-${tableStatus[t.id]}` : ""}`}
+                key={tItem.id}
+                className={`grid-box ${tableStatus[tItem.id] ? `grid-box-${tableStatus[tItem.id]}` : ""}`}
                 onClick={() => {
-                  setSelectedTable(t.id);
+                  setSelectedTable(tItem.id);
                   setStep("menu");
                 }}
               >
-                {t.table_number}
+                {tItem.table_number}
               </button>
             ))}
           </div>
@@ -350,7 +370,7 @@ const visibleFoods = foods
       {step === "menu" && (
         <>
           <div className="waiter-header">
-            <button className="waiter-back-btn" onClick={handleBack}>← Back</button>
+            <button className="waiter-back-btn" onClick={handleBack}>← {t(waiterT, "back", lang)}</button>
             <div className="person-selector">
               {Array.from({ length: PERSON_COUNT }, (_, i) => i + 1).map((num) => (
                 <button
@@ -365,14 +385,14 @@ const visibleFoods = foods
           </div>
 
           <p className="waiter-breadcrumb">
-            Table {tables.find((t) => t.id === selectedTable)?.table_number || selectedTable} · Person {selectedPerson}
+            {tables.find((tItem) => tItem.id === selectedTable)?.table_number || selectedTable} · P{selectedPerson}
           </p>
 
           {error && <div className="admin-error" style={{ maxWidth: 500, margin: "0 auto 20px" }}>{error}</div>}
 
           <div className="menu-layout">
             <div className="menu-browse">
-              <h2 className="section-title">Categories</h2>
+              <h2 className="section-title">{t(waiterT, "categories", lang)}</h2>
               <div className="chip-row">
                 {categories.map((c) => (
                   <button
@@ -387,7 +407,7 @@ const visibleFoods = foods
 
               {activeCategory && (
                 <>
-                  <h2 className="section-title">Sub-categories</h2>
+                  <h2 className="section-title">{t(waiterT, "subcategories", lang)}</h2>
                   <div className="chip-row">
                     {visibleSubCategories.map((s) => (
                       <button
@@ -404,7 +424,7 @@ const visibleFoods = foods
 
               {activeSubCategory && (
                 <>
-                  <h2 className="section-title">Food</h2>
+                  <h2 className="section-title">{t(waiterT, "food", lang)}</h2>
                   <div className="food-list">
                     {visibleFoods.map((f) => (
                       <div key={f.id} className="food-card">
@@ -423,7 +443,7 @@ const visibleFoods = foods
                           <div className="food-info-price">{f.price}</div>
                         </div>
                         <button className="food-add-btn" onClick={() => addToCart(f)} disabled={!f.is_available}>
-                          {f.is_available ? "Add" : "Unavailable"}
+                          {f.is_available ? t(waiterT, "add", lang) : t(waiterT, "unavailable", lang)}
                         </button>
                       </div>
                     ))}
@@ -433,16 +453,16 @@ const visibleFoods = foods
             </div>
 
             <div className="menu-order">
-              <h2 className="section-title">Order</h2>
+              <h2 className="section-title">{t(waiterT, "order", lang)}</h2>
 
               {sentItems.length === 0 && cart.length === 0 ? (
-                <p className="empty-order">No items yet</p>
+                <p className="empty-order">{t(waiterT, "noItemsYet", lang)}</p>
               ) : (
                 <>
                   {sentItems.map((item) => (
                     <div key={`sent-${item.id}`} className="order-item" style={{ flexDirection: "column", alignItems: "stretch" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-                        <span>{item.name} (P{item.person_number})</span>
+                        <span>{getLocalized(item.rawName)} (P{item.person_number})</span>
                         <div className="order-item-qty-controls">
                           <button className="qty-btn qty-btn-minus" onClick={() => changeSentQty(item.id, -1)}>−</button>
                           <span>{item.quantity}</span>
@@ -455,7 +475,7 @@ const visibleFoods = foods
                   {cart.map((c) => (
                     <div key={`new-${c.food_id}-${c.person_number}`} className="order-item" style={{ flexDirection: "column", alignItems: "stretch" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-                        <span>{c.name} (P{c.person_number}) <em style={{ color: "#3498db", fontStyle: "normal", fontSize: 11 }}>NEW</em></span>
+                        <span>{getLocalized(c.rawName)} (P{c.person_number}) <em style={{ color: "#3498db", fontStyle: "normal", fontSize: 11 }}>NEW</em></span>
                         <div className="order-item-qty-controls">
                           <button className="qty-btn qty-btn-minus" onClick={() => changeQty(c.food_id, c.person_number, -1)}>−</button>
                           <span>{c.quantity}</span>
@@ -464,7 +484,7 @@ const visibleFoods = foods
                       </div>
                       <input
                         className="qty-note-input"
-                        placeholder="Note (optional)"
+                        placeholder={t(waiterT, "notePlaceholder", lang)}
                         value={c.note}
                         onChange={(e) => changeNote(c.food_id, c.person_number, e.target.value)}
                       />
@@ -472,16 +492,16 @@ const visibleFoods = foods
                   ))}
 
                   <div className="order-total">
-                    <span>Total</span>
+                    <span>{t(waiterT, "total", lang)}</span>
                     <span>{liveTotal}</span>
                   </div>
-                  <button className="send-order-btn" onClick={handleSendOrder}>Send order to kitchen</button>
+                  <button className="send-order-btn" onClick={handleSendOrder}>{t(waiterT, "sendOrder", lang)}</button>
                 </>
               )}
 
               {currentInvoice && (
                 <div className="invoice-banner">
-                  Invoice #{currentInvoice.id} — status: pending — total: {currentInvoice.total}
+                  {t(waiterT, "invoiceBanner", lang)} #{currentInvoice.id} — {t(waiterT, "statusPending", lang)} — {t(waiterT, "totalLabel", lang)}: {currentInvoice.total}
                 </div>
               )}
             </div>
