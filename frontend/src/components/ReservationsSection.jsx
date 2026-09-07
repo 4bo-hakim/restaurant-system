@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { adminT, t, filterT } from "../adminTranslations";
+import { adminT, t, filterT, translateError } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 const STATUSES = ["pending", "confirmed", "cancelled", "completed"];
@@ -120,7 +120,7 @@ export default function ReservationsSection({ authHeaders, lang }) {
   return (
     <>
       <h1 className="admin-title">{t(adminT.reservations, "title", lang)}</h1>
-      {error && <div className="admin-error">{error}</div>}
+      {error && <div className="admin-error">{translateError(error, lang)}</div>}
 
       <form className="admin-form" onSubmit={handleSubmit} ref={formRef}>
         <h2>{editingId ? t(adminT.reservations, "updateReservation", lang) : t(adminT.reservations, "addNew", lang)}</h2>

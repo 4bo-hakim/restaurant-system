@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { adminT, t } from "../adminTranslations";
+import { adminT, t, translateError } from "../adminTranslations";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 
@@ -102,7 +102,7 @@ export default function DashboardSection({ authHeaders, lang }) {
   return (
     <>
       <h1 className="admin-title">{t(adminT.dashboard, "title", lang)}</h1>
-      {error && <div className="admin-error">{error}</div>}
+      {error && <div className="admin-error">{translateError(error, lang)}</div>}
 
       <div className="admin-form" style={{ maxWidth: 500 }}>
         <h2>{t(adminT.dashboard, "dateRange", lang)}</h2>

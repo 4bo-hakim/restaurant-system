@@ -607,3 +607,20 @@ input[name="password"]::placeholder {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+.available-row {
+  justify-content: flex-start;
+}
+
+.available-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+}
+
+.available-checkbox-label input {
+  width: auto;
+  margin: 0;
+}
