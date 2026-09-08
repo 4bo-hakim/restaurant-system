@@ -1,0 +1,53 @@
+export const CASHIER_LANGUAGES = [
+  { code: "ku", label: "کوردی" },
+  { code: "ar", label: "العربية" },
+  { code: "en", label: "English" },
+];
+
+export const t = (dict, key, lang) => {
+  return dict[key]?.[lang] || dict[key]?.en || key;
+};
+
+export const cashierT = {
+  title: { en: "Cashier", ar: "الكاشير", ku: "کاشێر" },
+  logout: { en: "Logout", ar: "تسجيل الخروج", ku: "چوونە دەرەوە" },
+  ordersTab: { en: "Orders", ar: "الطلبات", ku: "داواکارییەکان" },
+  reservationsTab: { en: "Reservations", ar: "الحجوزات", ku: "حجزکردنەکان" },
+  noOpenOrders: { en: "No open orders right now.", ar: "لا توجد طلبات مفتوحة الآن.", ku: "لە ئێستادا هیچ داواکارییەکی کراوە نییە." },
+  table: { en: "Table", ar: "الطاولة", ku: "مێز" },
+  waiter: { en: "Waiter", ar: "النادل", ku: "گارسۆن" },
+  subtotal: { en: "Subtotal", ar: "المجموع الفرعي", ku: "کۆی لاوەکی" },
+  discount: { en: "Discount amount", ar: "مبلغ الخصم", ku: "بڕی داشکاندن" },
+  apply: { en: "Apply", ar: "تطبيق", ku: "جێبەجێکردن" },
+  totalAfterDiscount: { en: "Total after discount", ar: "الإجمالي بعد الخصم", ku: "کۆی گشتی دوای داشکاندن" },
+  markAsPaid: { en: "Mark as paid", ar: "وضع علامة مدفوع", ku: "نیشانکردن وەک دراوە" },
+  cancelOrder: { en: "Cancel order", ar: "إلغاء الطلب", ku: "هەڵوەشاندنەوەی داواکاری" },
+  printBill: { en: "Print bill", ar: "طباعة الفاتورة", ku: "چاپکردنی پسوولە" },
+  confirmMarkPaid: { en: "Mark this order as paid?", ar: "هل تريد وضع علامة مدفوع على هذا الطلب؟", ku: "ئایا دەتەوێت ئەم داواکاریە بکەیت بە دراوە؟" },
+  confirmCancel: { en: "Cancel this entire order?", ar: "هل تريد إلغاء هذا الطلب بالكامل؟", ku: "ئایا دەتەوێت ئەم داواکاریە بەتەواوی هەڵبوەشێنیتەوە؟" },
+  back: { en: "Back", ar: "رجوع", ku: "گەڕانەوە" },
+  addNew: { en: "Add new reservation", ar: "إضافة حجز جديد", ku: "زیادکردنی حجزکردنی نوێ" },
+  updateReservation: { en: "Update reservation", ar: "تحديث الحجز", ku: "نوێکردنەوەی حجزکردن" },
+  guestName: { en: "Guest name", ar: "اسم الضيف", ku: "ناوی میوان" },
+  selectTable: { en: "Select table", ar: "اختر الطاولة", ku: "مێز هەڵبژێرە" },
+  phoneNumber: { en: "Phone number", ar: "رقم الهاتف", ku: "ژمارەی تەلەفۆن" },
+  guestCount: { en: "Guest count", ar: "عدد الضيوف", ku: "ژمارەی میوانەکان" },
+  notePlaceholder: { en: "Note (optional)", ar: "ملاحظة (اختياري)", ku: "تێبینی (ئارەزوومەندانە)" },
+  allReservations: { en: "All reservations", ar: "كل الحجوزات", ku: "هەموو حجزکردنەکان" },
+  guest: { en: "Guest", ar: "الضيف", ku: "میوان" },
+  start: { en: "Start", ar: "البداية", ku: "دەستپێک" },
+  end: { en: "End", ar: "النهاية", ku: "کۆتایی" },
+  guests: { en: "Guests", ar: "الضيوف", ku: "میوانەکان" },
+  status: { en: "Status", ar: "الحالة", ku: "دۆخ" },
+  actions: { en: "Actions", ar: "الإجراءات", ku: "کردارەکان" },
+  add: { en: "Add", ar: "إضافة", ku: "زیادکردن" },
+  update: { en: "Update", ar: "تحديث", ku: "نوێکردنەوە" },
+  cancel: { en: "Cancel", ar: "إلغاء", ku: "هەڵوەشاندنەوە" },
+  edit: { en: "Edit", ar: "تعديل", ku: "دەستکاریکردن" },
+  delete: { en: "Delete", ar: "حذف", ku: "سڕینەوە" },
+  confirmDelete: { en: "Are you sure you want to delete this?", ar: "هل أنت متأكد من الحذف؟", ku: "دڵنیایت لە سڕینەوە؟" },
+  pending: { en: "pending", ar: "قيد الانتظار", ku: "چاوەڕوان" },
+  confirmed: { en: "confirmed", ar: "مؤكد", ku: "پشتڕاستکراوە" },
+  cancelled: { en: "cancelled", ar: "ملغى", ku: "هەڵوەشێندراوە" },
+  completed: { en: "completed", ar: "مكتمل", ku: "تەواوبوو" },
+};

@@ -1,19 +1,25 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../AuthContext";
+import { cashierT, t, CASHIER_LANGUAGES } from "../cashierTranslations";
 import "../styles/CashierPage.css";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 const CASHIER_ICONS = ["💵", "🧾", "💳"];
 const STAGE_ORDER = ["pending", "preparing", "ready"];
+const STATUSES = ["pending", "confirmed", "cancelled", "completed"];
 
-const getLocalized = (field) => {
+const getLocalized = (field, lang) => {
   if (!field) return "";
   if (typeof field === "string") return field;
-  return field.en || Object.values(field)[0] || "";
+  return field[lang] || field.en || Object.values(field)[0] || "";
 };
 
 export default function CashierPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [lang, setLang] = useState(() => localStorage.getItem("cashierLang") || "en");
+  const isRTL = lang === "ar" || lang === "ku";
+  const [tab, setTab] = useState("orders"); // orders | reservations
+
   const [tables, setTables] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [users, setUsers] = useState([]);
@@ -21,6 +27,19 @@ export default function CashierPage() {
   const [discountInput, setDiscountInput] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Reservations tab state
+  const [reservations, setReservations] = useState([]);
+  const [resForm, setResForm] = useState({
+    table_id: "", name: "", phone_number: "",
+    reservation_at: "", reservation_end: "", guest_count: 1, status: "pending", note: "",
+  });
+  const [editingResId, setEditingResId] = useState(null);
+
+  const changeLanguage = (code) => {
+    setLang(code);
+    localStorage.setItem("cashierLang", code);
+  };
 
   const floatingItems = useMemo(() => {
     const items = [];
@@ -51,7 +70,7 @@ export default function CashierPage() {
       if (!res.ok) res = await fetch(`${API_BASE}/admin/tables`, { headers: authHeaders });
       if (!res.ok) return;
       const data = await res.json();
-      setTables(data.data || []);
+      setTables(data.data?.data || data.data || []);
     } catch {
       // ignore silently
     }
@@ -63,7 +82,8 @@ export default function CashierPage() {
       const res = await fetch(`${API_BASE}/admin/invoices`, { headers: authHeaders });
       if (!res.ok) throw new Error("Failed to load invoices");
       const data = await res.json();
-      setInvoices((data.data || []).filter((inv) => inv.status === "pending"));
+      const invoiceList = data.data?.data || data.data || [];
+      setInvoices(invoiceList.filter((inv) => inv.status === "pending"));
     } catch (err) {
       setError(err.message);
     }
@@ -74,7 +94,18 @@ export default function CashierPage() {
       const res = await fetch(`${API_BASE}/admin/users`, { headers: authHeaders });
       if (!res.ok) return;
       const data = await res.json();
-      setUsers(data.data || []);
+      setUsers(data.data?.data || data.data || []);
+    } catch {
+      // ignore silently
+    }
+  };
+
+  const fetchReservations = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/reservations`, { headers: authHeaders });
+      if (!res.ok) return;
+      const data = await res.json();
+      setReservations(data.data?.data || data.data || []);
     } catch {
       // ignore silently
     }
@@ -82,7 +113,7 @@ export default function CashierPage() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchTables(), fetchInvoices(), fetchUsers()]).finally(() => setLoading(false));
+    Promise.all([fetchTables(), fetchInvoices(), fetchUsers(), fetchReservations()]).finally(() => setLoading(false));
     const interval = setInterval(fetchInvoices, 5000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,7 +155,7 @@ export default function CashierPage() {
       .filter((f) => f.status !== "cancelled")
       .map((f) => ({
         ...f,
-        name: getLocalized(f.food?.name),
+        name: getLocalized(f.food?.name, lang),
         size: f.food?.size || null,
       }));
 
@@ -152,7 +183,7 @@ export default function CashierPage() {
 
   const markAsPaid = async () => {
     if (!selectedInvoice) return;
-    if (!window.confirm("Mark this order as paid?")) return;
+    if (!window.confirm(t(cashierT, "confirmMarkPaid", lang))) return;
     setError("");
     try {
       const res = await fetch(`${API_BASE}/admin/invoices/${selectedInvoice.id}`, {
@@ -171,7 +202,7 @@ export default function CashierPage() {
 
   const cancelOrder = async () => {
     if (!selectedInvoice) return;
-    if (!window.confirm("Cancel this entire order?")) return;
+    if (!window.confirm(t(cashierT, "confirmCancel", lang))) return;
     setError("");
     try {
       const res = await fetch(`${API_BASE}/admin/invoices/${selectedInvoice.id}`, {
@@ -188,8 +219,167 @@ export default function CashierPage() {
     }
   };
 
+  // ===== Print Bill =====
+  const printBill = async () => {
+    if (!selectedInvoice) return;
+    setError("");
+    try {
+      const res = await fetch(`${API_BASE}/admin/invoices/${selectedInvoice.id}/bill`, { headers: authHeaders });
+      if (!res.ok) throw new Error("Failed to load bill");
+      const data = await res.json();
+      const bill = data.data || data;
+
+      const printWindow = window.open("", "_blank", "width=400,height=600");
+
+      let personsHtml = "";
+
+if (bill.persons && bill.persons.length > 0) {
+  // Backend already groups items by person
+  personsHtml = bill.persons.map((p) => {
+    const itemsHtml = (p.items || [])
+      .map((it) => `
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0;">
+          <span>${it.name || it.food_name}${it.size ? ` (${it.size})` : ""} × ${it.quantity}</span>
+          <span>${it.line_total ?? (it.unit_price * it.quantity)}</span>
+        </div>
+      `)
+      .join("");
+    return `
+      <div style="margin-bottom:12px;">
+        <div style="font-weight:bold;font-size:13px;border-bottom:1px solid #ccc;margin-bottom:4px;">Person ${p.person_number}</div>
+        ${itemsHtml}
+        <div style="text-align:right;font-size:12px;color:#555;margin-top:2px;">Subtotal: ${p.subtotal}</div>
+      </div>
+    `;
+  }).join("");
+} else {
+  // Fallback: build person groups ourselves from the invoice's own item list
+  const items = detailedItems(selectedInvoice);
+  const grouped = {};
+  items.forEach((item) => {
+    if (!grouped[item.person_number]) grouped[item.person_number] = [];
+    grouped[item.person_number].push(item);
+  });
+
+  personsHtml = Object.entries(grouped)
+    .map(([personNum, personItems]) => {
+      const itemsHtml = personItems
+        .map((it) => `
+          <div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0;">
+            <span>${it.name}${it.size ? ` (${it.size})` : ""} × ${it.quantity}</span>
+            <span>${it.quantity * it.unit_price}</span>
+          </div>
+        `)
+        .join("");
+      const personSubtotal = personItems.reduce((sum, it) => sum + it.quantity * it.unit_price, 0);
+      return `
+        <div style="margin-bottom:12px;">
+          <div style="font-weight:bold;font-size:13px;border-bottom:1px solid #ccc;margin-bottom:4px;">Person ${personNum}</div>
+          ${itemsHtml}
+          <div style="text-align:right;font-size:12px;color:#555;margin-top:2px;">Subtotal: ${personSubtotal}</div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Bill</title>
+            <style>
+              body { font-family: monospace; padding: 16px; }
+              h2 { text-align: center; margin-bottom: 4px; }
+              .meta { text-align: center; font-size: 12px; color: #555; margin-bottom: 16px; }
+              hr { border: none; border-top: 1px dashed #000; margin: 12px 0; }
+              .totals-row { display: flex; justify-content: space-between; font-size: 14px; padding: 3px 0; }
+              .totals-row.final { font-weight: bold; font-size: 16px; }
+            </style>
+          </head>
+          <body>
+            <h2>${t(cashierT, "table", lang)} ${bill.table?.table_number || selectedTable?.table_number || ""}</h2>
+            <div class="meta">${t(cashierT, "waiter", lang)}: ${bill.served_by || waiterName(selectedInvoice.created_by)}<br/>${new Date().toLocaleString()}</div>
+            <hr />
+            ${personsHtml}
+            <hr />
+            <div class="totals-row"><span>${t(cashierT, "subtotal", lang)}</span><span>${bill.subtotal ?? subtotal(selectedInvoice)}</span></div>
+            <div class="totals-row"><span>${t(cashierT, "discount", lang)}</span><span>${bill.discount ?? selectedInvoice.discount}</span></div>
+            <div class="totals-row final"><span>${t(cashierT, "totalAfterDiscount", lang)}</span><span>${bill.total ?? selectedInvoice.total}</span></div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // ===== Reservations tab =====
+  const resetResForm = () => {
+    setResForm({
+      table_id: tables[0]?.id || "", name: "", phone_number: "",
+      reservation_at: "", reservation_end: "", guest_count: 1, status: "pending", note: "",
+    });
+    setEditingResId(null);
+  };
+
+  const handleResSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    try {
+      const url = editingResId ? `${API_BASE}/admin/reservations/${editingResId}` : `${API_BASE}/admin/reservations`;
+      const method = editingResId ? "PUT" : "POST";
+      const body = {
+        table_id: resForm.table_id,
+        name: resForm.name,
+        phone_number: resForm.phone_number,
+        reservation_at: new Date(resForm.reservation_at).toISOString(),
+        reservation_end: new Date(resForm.reservation_end).toISOString(),
+        guest_count: Number(resForm.guest_count),
+        status: resForm.status,
+        note: resForm.note || null,
+      };
+      const res = await fetch(url, { method, headers: jsonHeaders, body: JSON.stringify(body) });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.message || "Failed to save reservation");
+      }
+      resetResForm();
+      fetchReservations();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const toLocalInput = (iso) => (iso ? iso.slice(0, 16) : "");
+
+  const handleResEdit = (r) => {
+    setEditingResId(r.id);
+    setResForm({
+      table_id: r.table_id, name: r.name, phone_number: r.phone_number,
+      reservation_at: toLocalInput(r.reservation_at), reservation_end: toLocalInput(r.reservation_end),
+      guest_count: r.guest_count, status: r.status, note: r.note || "",
+    });
+  };
+
+  const handleResDelete = async (id) => {
+    if (!window.confirm(t(cashierT, "confirmDelete", lang))) return;
+    try {
+      const res = await fetch(`${API_BASE}/admin/reservations/${id}`, { method: "DELETE", headers: authHeaders });
+      if (!res.ok) throw new Error("Failed to delete reservation");
+      fetchReservations();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const tableNumber = (id) => tables.find((t) => t.id === id)?.table_number || "-";
+  const statusLabel = (status) => t(cashierT, status, lang);
+
   return (
-    <div className="cashier-page">
+    <div className="cashier-page" dir={isRTL ? "rtl" : "ltr"}>
       <div className="floating-background">
         {floatingItems.map((item, i) => (
           <span
@@ -210,36 +400,43 @@ export default function CashierPage() {
 
       <div className="cashier-content">
         <div className="cashier-header">
-          {selectedTable && <button className="cashier-back-btn" onClick={closePanel}>← Back</button>}
-          <h1 className="cashier-title">Cashier</h1>
+          {selectedTable ? (
+            <button className="cashier-back-btn" onClick={closePanel}>← {t(cashierT, "back", lang)}</button>
+          ) : (
+            <button className="cashier-logout-btn cashier-logout-left" onClick={logout}>↩ {t(cashierT, "logout", lang)}</button>
+          )}
+          <h1 className="cashier-title">{t(cashierT, "title", lang)}</h1>
+          <div className="cashier-lang-inline cashier-lang-right">
+            🌐 {CASHIER_LANGUAGES.map((l, i) => (
+              <span key={l.code}>
+                <button className={`cashier-lang-btn ${lang === l.code ? "active" : ""}`} onClick={() => changeLanguage(l.code)}>
+                  {l.label}
+                </button>
+                {i < CASHIER_LANGUAGES.length - 1 && " / "}
+              </span>
+            ))}
+          </div>
         </div>
+
+        {!selectedTable && (
+          <div className="cashier-tabs">
+            <button className={`cashier-tab ${tab === "orders" ? "active" : ""}`} onClick={() => setTab("orders")}>
+              {t(cashierT, "ordersTab", lang)}
+            </button>
+            <button className={`cashier-tab ${tab === "reservations" ? "active" : ""}`} onClick={() => setTab("reservations")}>
+              {t(cashierT, "reservationsTab", lang)}
+            </button>
+          </div>
+        )}
 
         {error && <div className="admin-error" style={{ maxWidth: 500, margin: "0 auto 20px" }}>{error}</div>}
 
         {loading ? (
           <p style={{ textAlign: "center" }}>Loading...</p>
-        ) : !selectedTable ? (
-          <div className="grid-boxes">
-            {tables.map((t) => {
-              const invoice = invoiceForTable(t.id);
-              const status = invoice ? getOverallStatus(invoice) : null;
-              return (
-                <button
-                  key={t.id}
-                  className={`grid-box ${status ? `grid-box-${status}` : ""}`}
-                  onClick={() => openTable(t)}
-                  disabled={!invoice}
-                >
-                  {t.table_number}
-                  {invoice && <span className="grid-box-total">{invoice.total}</span>}
-                </button>
-              );
-            })}
-          </div>
-        ) : (
+        ) : selectedTable ? (
           <div className="invoice-panel">
-            <h2 className="invoice-panel-title">Table {selectedTable.table_number}</h2>
-            <p className="invoice-panel-waiter">Waiter: {waiterName(selectedInvoice.created_by)}</p>
+            <h2 className="invoice-panel-title">{t(cashierT, "table", lang)} {selectedTable.table_number}</h2>
+            <p className="invoice-panel-waiter">{t(cashierT, "waiter", lang)}: {waiterName(selectedInvoice.created_by)}</p>
 
             {detailedItems(selectedInvoice).map((item, index, arr) => {
               const isNewPerson = index > 0 && arr[index - 1].person_number !== item.person_number;
@@ -259,7 +456,7 @@ export default function CashierPage() {
             })}
 
             <div className="invoice-totals-row" style={{ marginTop: 16 }}>
-              <span>Subtotal</span>
+              <span>{t(cashierT, "subtotal", lang)}</span>
               <span>{subtotal(selectedInvoice)}</span>
             </div>
 
@@ -269,23 +466,106 @@ export default function CashierPage() {
                 min="0"
                 value={discountInput}
                 onChange={(e) => setDiscountInput(e.target.value)}
-                placeholder="Discount amount"
+                placeholder={t(cashierT, "discount", lang)}
               />
-              <button className="discount-save-btn" onClick={saveDiscount}>Apply</button>
+              <button className="discount-save-btn" onClick={saveDiscount}>{t(cashierT, "apply", lang)}</button>
             </div>
 
             <div className="invoice-totals">
               <div className="invoice-totals-row final">
-                <span>Total after discount</span>
+                <span>{t(cashierT, "totalAfterDiscount", lang)}</span>
                 <span>{selectedInvoice.total}</span>
               </div>
             </div>
 
             <div className="invoice-actions">
-              <button className="pay-btn" onClick={markAsPaid}>Mark as paid</button>
-              <button className="cancel-btn" onClick={cancelOrder}>Cancel order</button>
+              <button className="pay-btn" onClick={markAsPaid}>{t(cashierT, "markAsPaid", lang)}</button>
+              <button className="cancel-btn" onClick={cancelOrder}>{t(cashierT, "cancelOrder", lang)}</button>
             </div>
+            <button className="print-bill-btn" onClick={printBill}>🖨️ {t(cashierT, "printBill", lang)}</button>
           </div>
+        ) : tab === "orders" ? (
+          <div className="grid-boxes">
+            {tables.map((t) => {
+              const invoice = invoiceForTable(t.id);
+              const status = invoice ? getOverallStatus(invoice) : null;
+              return (
+                <button
+                  key={t.id}
+                  className={`grid-box ${status ? `grid-box-${status}` : ""}`}
+                  onClick={() => openTable(t)}
+                  disabled={!invoice}
+                >
+                  {t.table_number}
+                  {invoice && <span className="grid-box-total">{invoice.total}</span>}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <>
+            <form className="cashier-form" onSubmit={handleResSubmit}>
+              <h2>{editingResId ? t(cashierT, "updateReservation", lang) : t(cashierT, "addNew", lang)}</h2>
+              <div className="cashier-form-row">
+                <input placeholder={t(cashierT, "guestName", lang)} value={resForm.name} onChange={(e) => setResForm({ ...resForm, name: e.target.value })} required />
+                <select value={resForm.table_id} onChange={(e) => setResForm({ ...resForm, table_id: e.target.value })} required>
+                  <option value="">{t(cashierT, "selectTable", lang)}</option>
+                  {tables.map((tItem) => <option key={tItem.id} value={tItem.id}>{tItem.table_number}</option>)}
+                </select>
+              </div>
+              <div className="cashier-form-row">
+                <input placeholder={t(cashierT, "phoneNumber", lang)} value={resForm.phone_number} onChange={(e) => setResForm({ ...resForm, phone_number: e.target.value })} required />
+                <input type="number" min="1" max="50" placeholder={t(cashierT, "guestCount", lang)} value={resForm.guest_count} onChange={(e) => setResForm({ ...resForm, guest_count: e.target.value })} required />
+              </div>
+              <div className="cashier-form-row">
+                <input type="datetime-local" value={resForm.reservation_at} onChange={(e) => setResForm({ ...resForm, reservation_at: e.target.value })} required />
+                <input type="datetime-local" value={resForm.reservation_end} onChange={(e) => setResForm({ ...resForm, reservation_end: e.target.value })} required />
+              </div>
+              <div className="cashier-form-row">
+                <select value={resForm.status} onChange={(e) => setResForm({ ...resForm, status: e.target.value })}>
+                  {STATUSES.map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
+                </select>
+                <input placeholder={t(cashierT, "notePlaceholder", lang)} value={resForm.note} onChange={(e) => setResForm({ ...resForm, note: e.target.value })} />
+              </div>
+              <div className="cashier-form-actions">
+                <button type="submit" className="cashier-btn-primary">{editingResId ? t(cashierT, "update", lang) : t(cashierT, "add", lang)}</button>
+                {editingResId && <button type="button" className="cashier-btn-secondary" onClick={resetResForm}>{t(cashierT, "cancel", lang)}</button>}
+              </div>
+            </form>
+
+            <h2 className="cashier-subtitle">{t(cashierT, "allReservations", lang)}</h2>
+            <div className="cashier-table-wrapper">
+              <table className="cashier-table">
+                <thead>
+                  <tr>
+                    <th>{t(cashierT, "guest", lang)}</th>
+                    <th>{t(cashierT, "table", lang)}</th>
+                    <th>{t(cashierT, "start", lang)}</th>
+                    <th>{t(cashierT, "end", lang)}</th>
+                    <th>{t(cashierT, "guests", lang)}</th>
+                    <th>{t(cashierT, "status", lang)}</th>
+                    <th>{t(cashierT, "actions", lang)}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reservations.map((r) => (
+                    <tr key={r.id}>
+                      <td>{r.name}</td>
+                      <td>{r.table?.table_number || tableNumber(r.table_id)}</td>
+                      <td>{new Date(r.reservation_at).toLocaleString()}</td>
+                      <td>{new Date(r.reservation_end).toLocaleString()}</td>
+                      <td>{r.guest_count}</td>
+                      <td>{statusLabel(r.status)}</td>
+                      <td>
+                        <button className="cashier-btn-small" onClick={() => handleResEdit(r)}>{t(cashierT, "edit", lang)}</button>
+                        <button className="cashier-btn-small cashier-btn-danger" onClick={() => handleResDelete(r.id)}>{t(cashierT, "delete", lang)}</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -291,3 +291,207 @@
   background-color: var(--primary-red);
   color: var(--white);
 }
+.cashier-header {
+  position: relative;
+}
+
+.cashier-logout-btn {
+  background: none;
+  border: 2px solid var(--primary-red);
+  color: var(--primary-red);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.cashier-logout-btn:hover {
+  background-color: var(--primary-red);
+  color: var(--white);
+}
+
+.cashier-logout-left {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.cashier-lang-inline {
+  color: rgba(0,0,0,0.5);
+  font-size: 12px;
+}
+
+.cashier-lang-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  color: rgba(0,0,0,0.5);
+  padding: 0 2px;
+}
+
+.cashier-lang-btn.active {
+  color: var(--primary-red);
+  text-decoration: underline;
+}
+
+.cashier-lang-right {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.cashier-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.cashier-tab {
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: 2px solid var(--primary-red);
+  background-color: var(--white);
+  color: var(--primary-red);
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.cashier-tab.active {
+  background-color: var(--primary-red);
+  color: var(--white);
+}
+
+.print-bill-btn {
+  width: 100%;
+  margin-top: 10px;
+  background-color: #444;
+  color: var(--white);
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.print-bill-btn:hover {
+  background-color: #222;
+}
+
+.cashier-form {
+  background-color: var(--white);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  max-width: 700px;
+  margin: 0 auto 30px;
+}
+
+.cashier-form h2 {
+  margin-bottom: 16px;
+  font-size: 18px;
+  color: var(--primary-red);
+  text-align: center;
+}
+
+.cashier-form-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.cashier-form-row input,
+.cashier-form-row select {
+  flex: 1;
+  min-width: 140px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.cashier-form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.cashier-btn-primary {
+  background-color: var(--primary-red);
+  color: var(--white);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.cashier-btn-primary:hover {
+  background-color: var(--primary-red-dark);
+}
+
+.cashier-btn-secondary {
+  background-color: var(--white);
+  color: var(--primary-red);
+  border: 2px solid var(--primary-red);
+  padding: 8px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.cashier-subtitle {
+  margin: 30px 0 14px;
+  color: #333;
+  text-align: center;
+}
+
+.cashier-table-wrapper {
+  overflow-x: auto;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.cashier-table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+  background-color: var(--white);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.cashier-table th,
+.cashier-table td {
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.cashier-table th {
+  background-color: #fafafa;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: #888;
+}
+
+.cashier-btn-small {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  margin-right: 6px;
+  cursor: pointer;
+  background-color: var(--primary-red);
+  color: var(--white);
+  font-weight: bold;
+}
+
+.cashier-btn-danger {
+  background-color: #444;
+}
