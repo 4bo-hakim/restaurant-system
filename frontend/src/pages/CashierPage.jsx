@@ -16,7 +16,6 @@ export default function CashierPage() {
   const { user } = useAuth();
   const [tables, setTables] = useState([]);
   const [invoices, setInvoices] = useState([]);
-  const [users, setUsers] = useState([]);
   const [selectedTableId, setSelectedTableId] = useState(null);
   const [discountInput, setDiscountInput] = useState("");
   const [error, setError] = useState("");
@@ -69,26 +68,16 @@ export default function CashierPage() {
     }
   };
 
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/admin/users`, { headers: authHeaders });
-      if (!res.ok) return;
-      const data = await res.json();
-      setUsers(data.data || []);
-    } catch {
-      // ignore silently
-    }
-  };
+  
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchTables(), fetchInvoices(), fetchUsers()]).finally(() => setLoading(false));
+    Promise.all([fetchTables(), fetchInvoices()]).finally(() => setLoading(false));
     const interval = setInterval(fetchInvoices, 5000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const waiterName = (id) => users.find((u) => u.id === id)?.name || `User #${id}`;
 
   const getOverallStatus = (invoice) => {
     const items = (invoice.invoice_foods || []).filter((f) => f.status !== "cancelled" && f.status !== "served");
@@ -239,8 +228,7 @@ export default function CashierPage() {
         ) : (
           <div className="invoice-panel">
             <h2 className="invoice-panel-title">Table {selectedTable.table_number}</h2>
-            <p className="invoice-panel-waiter">Waiter: {waiterName(selectedInvoice.created_by)}</p>
-
+<p className="invoice-panel-waiter">Waiter: {selectedInvoice.creator?.name || `User #${selectedInvoice.created_by}`}</p>
             {detailedItems(selectedInvoice).map((item, index, arr) => {
               const isNewPerson = index > 0 && arr[index - 1].person_number !== item.person_number;
               const isDone = item.status === "ready" || item.status === "served";

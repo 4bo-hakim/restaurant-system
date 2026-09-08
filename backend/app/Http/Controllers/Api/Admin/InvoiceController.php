@@ -37,7 +37,7 @@ class InvoiceController extends Controller
             return $this->error('The from date cannot be after the to date', 422);
         }
 
-        $invoiceQuery = Invoice::with(['table', 'invoiceFoods.food'])
+        $invoiceQuery = Invoice::with(['table', 'creator:id,name', 'invoiceFoods.food'])
             ->when($filters['status'] ?? null, fn($query, $status) => $query->where('status', $status))
             ->when(array_key_exists('table_id', $filters), fn($query) => $query->where('table_id', $filters['table_id']))
             ->when($fromDate, fn($query) => $query->where('created_at', '>=', $fromDate->startOfDay()))
@@ -52,7 +52,7 @@ class InvoiceController extends Controller
 
     public function show($id)
     {
-        $invoice = Invoice::with(['table', 'invoiceFoods.food'])->find($id);
+        $invoice = Invoice::with(['table', 'creator:id,name', 'invoiceFoods.food'])->find($id);
 
         if (!$invoice) {
             return $this->error('Invoice not found', 404);
