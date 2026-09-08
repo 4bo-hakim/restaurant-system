@@ -7,6 +7,18 @@ const API_BASE = "http://127.0.0.1:8000/api";
 const PERSON_COUNT = 8;
 const STAGE_ORDER = ["pending", "preparing", "ready"];
 
+const SIZE_LABELS = {
+  L: { en: "Large", ar: "كبير", ku: "گەورە" },
+  M: { en: "Medium", ar: "وسط", ku: "ناوەند" },
+  S: { en: "Small", ar: "صغير", ku: "بچووک" },
+};
+
+const translateSize = (size, lang) => {
+  if (!size) return "";
+  const letter = size.trim().charAt(0).toUpperCase();
+  return SIZE_LABELS[letter]?.[lang] || size;
+};
+
 export default function WaiterPage() {
   const { user, logout } = useAuth();
   const [step, setStep] = useState("tables"); // tables -> menu
@@ -439,7 +451,7 @@ export default function WaiterPage() {
                         )}
                         <div>
                           <div className="food-info-name">{getLocalized(f.name)}</div>
-                          {f.size && <div className="food-info-size">{f.size}</div>}
+                          {f.size && <div className="food-info-size">{translateSize(f.size, lang)}</div>}
                           <div className="food-info-price">{f.price}</div>
                         </div>
                         <button className="food-add-btn" onClick={() => addToCart(f)} disabled={!f.is_available}>

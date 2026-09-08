@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "../AuthContext";
+import { chefT, t, CHEF_LANGUAGES } from "../chefTranslations";
 import "../styles/ChefPage.css";
 
 const API_BASE = "http://127.0.0.1:8000/api";
@@ -9,19 +10,17 @@ const NEXT_STATUS = {
   pending: "preparing",
   preparing: "ready",
 };
-const STAGE_BUTTON_LABEL = {
-  pending: "Make all preparing",
-  preparing: "Mark all ready",
-};
 
-const getLocalized = (field) => {
-  if (!field) return "";
-  if (typeof field === "string") return field;
-  return field.en || Object.values(field)[0] || "";
+const SIZE_LABELS = {
+  L: { en: "Large", ar: "كبير", ku: "گەورە" },
+  M: { en: "Medium", ar: "وسط", ku: "ناوەند" },
+  S: { en: "Small", ar: "صغير", ku: "بچووک" },
 };
 
 export default function ChefPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [lang, setLang] = useState(() => localStorage.getItem("chefLang") || "en");
+  const isRTL = lang === "ar" || lang === "ku";
   const [tab, setTab] = useState("queue"); // queue | availability
   const [invoices, setInvoices] = useState([]);
   const [foods, setFoods] = useState([]);
@@ -32,10 +31,29 @@ export default function ChefPage() {
   const [activeSubCategory, setActiveSubCategory] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [alertTables, setAlertTables] = useState(new Set());
 
   const knownItemIds = useRef(new Set());
   const tableGroupRefs = useRef({});
   const [highlightLabel, setHighlightLabel] = useState(null);
+  const alertAudioRef = useRef(null);
+
+  const changeLanguage = (code) => {
+    setLang(code);
+    localStorage.setItem("chefLang", code);
+  };
+
+  const getLocalized = (field) => {
+    if (!field) return "";
+    if (typeof field === "string") return field;
+    return field[lang] || field.en || Object.values(field)[0] || "";
+  };
+
+  const translateSize = (size) => {
+    if (!size) return "";
+    const letter = size.trim().charAt(0).toUpperCase();
+    return SIZE_LABELS[letter]?.[lang] || size;
+  };
 
   const floatingItems = useMemo(() => {
     const items = [];
@@ -66,7 +84,8 @@ export default function ChefPage() {
       const res = await fetch(`${API_BASE}/admin/invoices`, { headers: authHeaders });
       if (!res.ok) throw new Error("Failed to load orders");
       const data = await res.json();
-      setInvoices((data.data || []).filter((inv) => inv.status === "pending"));
+      const invoiceList = data.data?.data || data.data || [];
+      setInvoices(invoiceList.filter((inv) => inv.status === "pending"));
     } catch (err) {
       setError(err.message);
     }
@@ -78,7 +97,7 @@ export default function ChefPage() {
       const res = await fetch(`${API_BASE}/admin/foods`, { headers: authHeaders });
       if (!res.ok) throw new Error("Failed to load foods");
       const data = await res.json();
-      setFoods(data.data || []);
+      setFoods(data.data?.data || data.data || []);
     } catch (err) {
       setError(err.message);
     }
@@ -89,7 +108,7 @@ export default function ChefPage() {
       const res = await fetch(`${API_BASE}/admin/users`, { headers: authHeaders });
       if (!res.ok) return;
       const data = await res.json();
-      setUsers(data.data || []);
+      setUsers(data.data?.data || data.data || []);
     } catch {
       // ignore silently
     }
@@ -100,7 +119,7 @@ export default function ChefPage() {
       const res = await fetch(`${API_BASE}/admin/categories`, { headers: authHeaders });
       if (!res.ok) return;
       const data = await res.json();
-      setCategories(data.data || []);
+      setCategories(data.data?.data || data.data || []);
     } catch {
       // ignore silently
     }
@@ -111,7 +130,7 @@ export default function ChefPage() {
       const res = await fetch(`${API_BASE}/admin/sub-categories`, { headers: authHeaders });
       if (!res.ok) return;
       const data = await res.json();
-      setSubCategories(data.data || []);
+      setSubCategories(data.data?.data || data.data || []);
     } catch {
       // ignore silently
     }
@@ -127,6 +146,7 @@ export default function ChefPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Detect new items and mark their table as needing an alert
   useEffect(() => {
     const currentItems = invoices.flatMap((inv) =>
       (inv.invoice_foods || []).filter((f) => f.status !== "cancelled")
@@ -142,6 +162,8 @@ export default function ChefPage() {
       );
       const label = invoice?.table?.table_number || `Invoice #${invoice?.id}`;
 
+      setAlertTables((prev) => new Set(prev).add(label));
+
       setHighlightLabel(label);
       setTimeout(() => {
         tableGroupRefs.current[label]?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -152,9 +174,83 @@ export default function ChefPage() {
     knownItemIds.current = currentIds;
   }, [invoices]);
 
+  // Loop the alert sound while any table has an active alert
+  useEffect(() => {
+    if (alertTables.size === 0) {
+      if (alertAudioRef.current) {
+        alertAudioRef.current.pause();
+        alertAudioRef.current = null;
+      }
+      return;
+    }
+
+    if (!alertAudioRef.current) {
+      const audio = new Audio("/new-order-alert.mp3");
+      audio.loop = true;
+      audio.play().catch(() => {});
+      alertAudioRef.current = audio;
+    }
+
+    return () => {
+      // cleanup happens when alertTables becomes empty (handled above) or on unmount
+    };
+  }, [alertTables]);
+
+  useEffect(() => {
+    return () => {
+      if (alertAudioRef.current) {
+        alertAudioRef.current.pause();
+      }
+    };
+  }, []);
+
   const waiterName = (id) => users.find((u) => u.id === id)?.name || `User #${id}`;
 
-  const advanceAllInTable = async (items) => {
+  const printOrderTicket = (tableLabel, waiterForTable, summary) => {
+    const printWindow = window.open("", "_blank", "width=400,height=600");
+    const itemsHtml = summary
+      .map(([name, data]) => {
+        const notesHtml = data.notes
+          .map((n) => `<div style="font-size:11px;color:#555;margin-left:10px;">P${n.person}: ${n.note}</div>`)
+          .join("");
+        return `
+          <div style="margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;font-weight:bold;">
+              <span>${name}</span>
+              <span>× ${data.quantity}</span>
+            </div>
+            ${notesHtml}
+          </div>
+        `;
+      })
+      .join("");
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Order Ticket</title>
+          <style>
+            body { font-family: monospace; padding: 16px; }
+            h2 { text-align: center; margin-bottom: 4px; }
+            .meta { text-align: center; font-size: 12px; color: #555; margin-bottom: 16px; }
+            hr { border: none; border-top: 1px dashed #000; margin: 12px 0; }
+          </style>
+        </head>
+        <body>
+          <h2>Table ${tableLabel}</h2>
+          <div class="meta">Waiter: ${waiterForTable}<br/>${new Date().toLocaleString()}</div>
+          <hr />
+          ${itemsHtml}
+          <hr />
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  const advanceAllInTable = async (items, tableLabel, waiterForTable, summary, wasPending) => {
     setError("");
     try {
       for (const item of items) {
@@ -168,6 +264,17 @@ export default function ChefPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data?.message || "Failed to update status");
       }
+
+      if (wasPending) {
+        printOrderTicket(tableLabel, waiterForTable, summary);
+        // Chef acknowledged this table's order — stop the alert for it
+        setAlertTables((prev) => {
+          const updated = new Set(prev);
+          updated.delete(tableLabel);
+          return updated;
+        });
+      }
+
       fetchQueue();
     } catch (err) {
       setError(err.message);
@@ -190,9 +297,6 @@ export default function ChefPage() {
     }
   };
 
-  // Only items still needing kitchen work (pending or preparing).
-  // Ready/served/cancelled items are excluded — once "ready", the item
-  // moves off the chef's queue and appears on the cashier's invoice list.
   const activeItems = invoices.flatMap((inv) =>
     (inv.invoice_foods || [])
       .filter((f) => f.status === "pending" || f.status === "preparing")
@@ -216,7 +320,7 @@ export default function ChefPage() {
   const buildSummary = (items) => {
     const summary = {};
     items.forEach((item) => {
-      const key = `${item.foodName}${item.foodSize ? ` (${item.foodSize})` : ""}`;
+      const key = `${item.foodName}${item.foodSize ? ` (${translateSize(item.foodSize)})` : ""}`;
       if (!summary[key]) {
         summary[key] = { quantity: 0, notes: [] };
       }
@@ -248,7 +352,7 @@ export default function ChefPage() {
   });
 
   return (
-    <div className="chef-page">
+    <div className="chef-page" dir={isRTL ? "rtl" : "ltr"}>
       <div className="floating-background">
         {floatingItems.map((item, i) => (
           <span
@@ -270,15 +374,26 @@ export default function ChefPage() {
       <div className="chef-content">
         <div className="chef-sticky-top">
           <div className="chef-header">
-            <h1 className="chef-title">Chef</h1>
+            <button className="chef-logout-btn chef-logout-left" onClick={logout}>↩ {t(chefT, "logout", lang)}</button>
+            <h1 className="chef-title">{t(chefT, "title", lang)}</h1>
+            <div className="chef-lang-inline chef-lang-right">
+              🌐 {CHEF_LANGUAGES.map((l, i) => (
+                <span key={l.code}>
+                  <button className={`chef-lang-btn ${lang === l.code ? "active" : ""}`} onClick={() => changeLanguage(l.code)}>
+                    {l.label}
+                  </button>
+                  {i < CHEF_LANGUAGES.length - 1 && " / "}
+                </span>
+              ))}
+            </div>
           </div>
 
           <div className="chef-tabs">
             <button className={`chef-tab ${tab === "queue" ? "active" : ""}`} onClick={() => setTab("queue")}>
-              Kitchen queue
+              {t(chefT, "kitchenQueue", lang)}
             </button>
             <button className={`chef-tab ${tab === "availability" ? "active" : ""}`} onClick={() => setTab("availability")}>
-              Food availability
+              {t(chefT, "foodAvailability", lang)}
             </button>
           </div>
         </div>
@@ -289,25 +404,25 @@ export default function ChefPage() {
           <p style={{ textAlign: "center" }}>Loading...</p>
         ) : tab === "queue" ? (
           Object.keys(groupedByTable).length === 0 ? (
-            <p className="empty-queue">No active orders right now.</p>
+            <p className="empty-queue">{t(chefT, "noActiveOrders", lang)}</p>
           ) : (
             Object.entries(groupedByTable).map(([tableLabel, items]) => {
               const summary = buildSummary(items);
               const overallStatus = getOverallStatus(items);
-              const buttonLabel = STAGE_BUTTON_LABEL[overallStatus];
+              const buttonLabel = overallStatus === "pending" || overallStatus === "preparing";
               const waiterForTable = items[0]?.waiterName;
 
               return (
                 <div
                   key={tableLabel}
                   ref={(el) => (tableGroupRefs.current[tableLabel] = el)}
-                  className={`table-group ${highlightLabel === tableLabel ? "table-group-highlight" : ""}`}
+                  className={`table-group ${highlightLabel === tableLabel ? "table-group-highlight" : ""} ${alertTables.has(tableLabel) ? "table-group-alerting" : ""}`}
                 >
                   <span className={`status-circle status-circle-${overallStatus}`} />
 
                   <div className="table-header-block">
-                    <div className="table-header-name">Table {tableLabel}</div>
-                    <div className="table-header-waiter">Waiter: {waiterForTable}</div>
+                    <div className="table-header-name">{t(chefT, "table", lang)} {tableLabel}</div>
+                    <div className="table-header-waiter">{t(chefT, "waiter", lang)}: {waiterForTable}</div>
                   </div>
 
                   <div className="table-summary">
@@ -328,8 +443,11 @@ export default function ChefPage() {
                   </div>
 
                   {buttonLabel && (
-                    <button className="advance-all-btn" onClick={() => advanceAllInTable(items)}>
-                      {buttonLabel}
+                    <button
+                      className="advance-all-btn"
+                      onClick={() => advanceAllInTable(items, tableLabel, waiterForTable, summary, overallStatus === "pending")}
+                    >
+                      {overallStatus === "pending" ? t(chefT, "makeAllPreparing", lang) : t(chefT, "markAllReady", lang)}
                     </button>
                   )}
                 </div>
@@ -343,7 +461,7 @@ export default function ChefPage() {
                 className={`chip ${!activeCategory ? "active" : ""}`}
                 onClick={() => { setActiveCategory(null); setActiveSubCategory(null); }}
               >
-                All categories
+                {t(chefT, "allCategories", lang)}
               </button>
               {categories.map((c) => (
                 <button
@@ -362,7 +480,7 @@ export default function ChefPage() {
                   className={`chip ${!activeSubCategory ? "active" : ""}`}
                   onClick={() => setActiveSubCategory(null)}
                 >
-                  All sub-categories
+                  {t(chefT, "allSubCategories", lang)}
                 </button>
                 {visibleSubCategories.map((s) => (
                   <button
@@ -391,7 +509,7 @@ export default function ChefPage() {
                     )}
                     <div>
                       <div className="availability-name">{getLocalized(food.name)}</div>
-                      {food.size && <div className="availability-size">{food.size}</div>}
+                      {food.size && <div className="availability-size">{translateSize(food.size)}</div>}
                     </div>
                   </div>
                   <label className="toggle-switch">
