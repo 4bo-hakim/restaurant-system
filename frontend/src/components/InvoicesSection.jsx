@@ -15,15 +15,20 @@ export default function InvoicesSection({ authHeaders, lang }) {
 
   const jsonHeaders = { ...authHeaders, "Content-Type": "application/json" };
 
-  const fetchData = async () => {
+  const fetchData = async (overrides = {}) => {
     setLoading(true);
     setError("");
     try {
+      const status = overrides.status !== undefined ? overrides.status : filterStatus;
+      const tableId = overrides.tableId !== undefined ? overrides.tableId : filterTable;
+      const from = overrides.from !== undefined ? overrides.from : filterFrom;
+      const to = overrides.to !== undefined ? overrides.to : filterTo;
+
       const params = new URLSearchParams();
-      if (filterStatus) params.append("status", filterStatus);
-      if (filterTable) params.append("table_id", filterTable);
-      if (filterFrom) params.append("from", filterFrom);
-      if (filterTo) params.append("to", filterTo);
+      if (status) params.append("status", status);
+      if (tableId) params.append("table_id", tableId);
+      if (from) params.append("from", from);
+      if (to) params.append("to", to);
 
       const [invRes, tableRes] = await Promise.all([
         fetch(`${API_BASE}/admin/invoices?${params.toString()}`, { headers: authHeaders }),
@@ -39,6 +44,14 @@ export default function InvoicesSection({ authHeaders, lang }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetFilters = () => {
+    setFilterStatus("");
+    setFilterTable("");
+    setFilterFrom("");
+    setFilterTo("");
+    fetchData({ status: "", tableId: "", from: "", to: "" });
   };
 
   useEffect(() => {
@@ -57,28 +70,14 @@ export default function InvoicesSection({ authHeaders, lang }) {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm(t(adminT.common, "confirmDelete", lang))) return;
-    try {
-      const res = await fetch(`${API_BASE}/admin/invoices/${id}`, { method: "DELETE", headers: authHeaders });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null);
-        throw new Error(errData?.message || "Failed to delete invoice");
-      }
-      fetchData();
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
   const tableNumber = (id) => tables.find((tItem) => tItem.id === id)?.table_number || "-";
 
   return (
     <>
       <h1 className="admin-title">{t(adminT.invoices, "title", lang)}</h1>
       {error && <div className="admin-error">{translateError(error, lang)}</div>}
-       <p style={{ textAlign: "center", color: "#888", marginTop: 30, marginBottom: 20 }}>
-       {t(adminT.invoices, "description", lang)}
+      <p style={{ textAlign: "center", color: "#888", marginTop: 30, marginBottom: 20 }}>
+        {t(adminT.invoices, "description", lang)}
       </p>
 
       <div className="admin-form" style={{ maxWidth: 700 }}>
@@ -95,12 +94,19 @@ export default function InvoicesSection({ authHeaders, lang }) {
             {tables.map((tItem) => <option key={tItem.id} value={tItem.id}>{tItem.table_number}</option>)}
           </select>
         </div>
-        <div className="admin-form-row">
-          <input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} />
-          <input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} />
+        <div className="admin-form-row date-range-row">
+          <div className="date-input-group">
+            <label className="date-input-label">{t(adminT.invoices, "from", lang)}</label>
+            <input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} />
+          </div>
+          <div className="date-input-group">
+            <label className="date-input-label">{t(adminT.invoices, "to", lang)}</label>
+            <input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} />
+          </div>
         </div>
         <div className="admin-form-actions">
-          <button className="admin-btn-primary" onClick={fetchData}>{t(adminT.common, "apply", lang)}</button>
+          <button className="admin-btn-primary" onClick={() => fetchData()}>{t(adminT.common, "apply", lang)}</button>
+          <button className="admin-btn-secondary" onClick={resetFilters}>{t(filterT, "resetFilter", lang)}</button>
         </div>
       </div>
 
@@ -113,7 +119,6 @@ export default function InvoicesSection({ authHeaders, lang }) {
                 <th>{t(adminT.reservations, "status", lang)}</th>
                 <th>{t(adminT.invoices, "discount", lang)}</th>
                 <th>{t(adminT.invoices, "total", lang)}</th>
-                <th>{t(adminT.common, "actions", lang)}</th>
               </tr>
             </thead>
             <tbody>
@@ -129,9 +134,6 @@ export default function InvoicesSection({ authHeaders, lang }) {
                   </td>
                   <td>{inv.discount}</td>
                   <td>{inv.total}</td>
-                  <td>
-                    <button className="admin-btn-small admin-btn-danger" onClick={() => handleDelete(inv.id)}>{t(adminT.common, "delete", lang)}</button>
-                  </td>
                 </tr>
               ))}
             </tbody>

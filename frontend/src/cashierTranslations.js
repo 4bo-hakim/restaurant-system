@@ -50,4 +50,10 @@ export const cashierT = {
   confirmed: { en: "confirmed", ar: "مؤكد", ku: "پشتڕاستکراوە" },
   cancelled: { en: "cancelled", ar: "ملغى", ku: "هەڵوەشێندراوە" },
   completed: { en: "completed", ar: "مكتمل", ku: "تەواوبوو" },
+  welcome: { en: "Welcome", ar: "مرحباً", ku: "بەخێربێیت" },
+  start: { en: "Start", ar: "البداية", ku: "دەستپێک" },
+  end: { en: "End", ar: "النهاية", ku: "کۆتایی" },
+  addSuccess: { en: "Reservation added successfully!", ar: "تمت إضافة الحجز بنجاح!", ku: "حجزکردن بە سەرکەوتوویی زیادکرا!" },
+updateSuccess: { en: "Reservation updated successfully!", ar: "تم تحديث الحجز بنجاح!", ku: "حجزکردن بە سەرکەوتوویی نوێکرایەوە!" },
+notReadyYet: { en: "All items must be ready before payment", ar: "يجب أن تكون جميع العناصر جاهزة قبل الدفع", ku: "پێویستە هەموو شتەکان ئامادە بن پێش پارەدان" },
 };

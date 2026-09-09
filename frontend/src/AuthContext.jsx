@@ -3,8 +3,17 @@ import { createContext, useContext, useState } from "react";
 const AuthContext = createContext();
 const API_BASE = "http://127.0.0.1:8000/api";
 
+const loadStoredUser = () => {
+  try {
+    const stored = localStorage.getItem("authUser");
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+};
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(loadStoredUser);
   const [error, setError] = useState(null);
 
   const login = async (email, password) => {
@@ -29,18 +38,21 @@ export function AuthProvider({ children }) {
       const userData = await userRes.json();
 
       // 3. TEMPORARY: fake role from email until backend adds real role field
-         let role = "waiter";
-        if (email.includes("chef")) role = "chef";
-        else if (email.includes("cashier")) role = "cashier";
-        else if (email.includes("admin")) role = "admin";
+      let role = "waiter";
+      if (email.includes("chef")) role = "chef";
+      else if (email.includes("cashier")) role = "cashier";
+      else if (email.includes("admin")) role = "admin";
 
-      setUser({
+      const loggedInUser = {
         id: userData.id,
         name: userData.name,
         email: userData.email,
         token,
         role, // TODO: replace with userData.role once backend adds it
-      });
+      };
+
+      setUser(loggedInUser);
+      localStorage.setItem("authUser", JSON.stringify(loggedInUser));
       return true;
     } catch (err) {
       setError(err.message);
@@ -48,7 +60,10 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = () => setUser(null);
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("authUser");
+  };
 
   return (
     <AuthContext.Provider value={{ user, login, logout, error }}>

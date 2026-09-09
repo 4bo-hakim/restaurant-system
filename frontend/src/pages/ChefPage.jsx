@@ -32,7 +32,8 @@ export default function ChefPage() {
   const [loading, setLoading] = useState(true);
   const [alertTables, setAlertTables] = useState(new Set());
 
-  const knownItemIds = useRef(new Set());
+  const knownTableQuantities = useRef({});
+  const hasLoadedOnce = useRef(false);
   const tableGroupRefs = useRef({});
   const [highlightLabel, setHighlightLabel] = useState(null);
   const alertAudioRef = useRef(null);
@@ -134,32 +135,46 @@ export default function ChefPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Detect new items and mark their table as needing an alert
+  // Detect increases in active quantity per table (new items OR added quantity)
   useEffect(() => {
-    const currentItems = invoices.flatMap((inv) =>
-      (inv.invoice_foods || []).filter((f) => f.status !== "cancelled")
+    const currentActiveItems = invoices.flatMap((inv) =>
+      (inv.invoice_foods || [])
+        .filter((f) => f.status === "pending" || f.status === "preparing")
+        .map((f) => ({ ...f, tableLabel: inv.table?.table_number || `Invoice #${inv.id}` }))
     );
-    const currentIds = new Set(currentItems.map((i) => i.id));
-    const isFirstLoad = knownItemIds.current.size === 0;
-    const newItems = currentItems.filter((i) => !knownItemIds.current.has(i.id));
 
-    if (!isFirstLoad && newItems.length > 0) {
-      const newItem = newItems[0];
-      const invoice = invoices.find((inv) =>
-        (inv.invoice_foods || []).some((f) => f.id === newItem.id)
-      );
-      const label = invoice?.table?.table_number || `Invoice #${invoice?.id}`;
+    const currentQuantities = {};
+    currentActiveItems.forEach((item) => {
+      currentQuantities[item.tableLabel] = (currentQuantities[item.tableLabel] || 0) + item.quantity;
+    });
 
-      setAlertTables((prev) => new Set(prev).add(label));
+    if (hasLoadedOnce.current) {
+      const newlyAlertingTables = [];
+      Object.entries(currentQuantities).forEach(([tableLabel, qty]) => {
+        const prevQty = knownTableQuantities.current[tableLabel] || 0;
+        if (qty > prevQty) {
+          newlyAlertingTables.push(tableLabel);
+        }
+      });
 
-      setHighlightLabel(label);
-      setTimeout(() => {
-        tableGroupRefs.current[label]?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 100);
-      setTimeout(() => setHighlightLabel(null), 3000);
+      if (newlyAlertingTables.length > 0) {
+        setAlertTables((prev) => {
+          const updated = new Set(prev);
+          newlyAlertingTables.forEach((label) => updated.add(label));
+          return updated;
+        });
+
+        const firstTable = newlyAlertingTables[0];
+        setHighlightLabel(firstTable);
+        setTimeout(() => {
+          tableGroupRefs.current[firstTable]?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 100);
+        setTimeout(() => setHighlightLabel(null), 3000);
+      }
     }
 
-    knownItemIds.current = currentIds;
+    knownTableQuantities.current = currentQuantities;
+    hasLoadedOnce.current = true;
   }, [invoices]);
 
   // Loop the alert sound while any table has an active alert
