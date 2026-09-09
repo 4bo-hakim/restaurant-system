@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\ReservationRequest;
 use App\Models\Reservation;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
 
 class ReservationController extends Controller
@@ -53,10 +54,13 @@ class ReservationController extends Controller
         $validated = $request->validated();
 
         // Check for overlapping reservations
+        $resAt = Carbon::parse($validated['reservation_at']);
+        $resEnd = Carbon::parse($validated['reservation_end']);
+
         $overlap = Reservation::where('table_id', $validated['table_id'])
             ->where('status', '!=', 'cancelled')
-            ->where('reservation_at', '<', $validated['reservation_end'])
-            ->where('reservation_end', '>', $validated['reservation_at'])
+            ->where('reservation_at', '<', $resEnd)
+            ->where('reservation_end', '>', $resAt)
             ->exists();
 
         if ($overlap) {
@@ -67,8 +71,8 @@ class ReservationController extends Controller
             'table_id' => $validated['table_id'],
             'name' => $validated['name'],
             'phone_number' => $validated['phone_number'],
-            'reservation_at' => $validated['reservation_at'],
-            'reservation_end' => $validated['reservation_end'],
+            'reservation_at' => $resAt,
+            'reservation_end' => $resEnd,
             'guest_count' => $validated['guest_count'],
             'status' => $validated['status'] ?? 'pending',
             'note' => $validated['note'] ?? null,
@@ -90,8 +94,8 @@ class ReservationController extends Controller
 
         // If reservation_at or reservation_end is being changed, check for overlaps
         if (isset($validated['reservation_at']) || isset($validated['reservation_end'])) {
-            $reservation_at = $validated['reservation_at'] ?? $reservation->reservation_at;
-            $reservation_end = $validated['reservation_end'] ?? $reservation->reservation_end;
+            $reservation_at = isset($validated['reservation_at']) ? Carbon::parse($validated['reservation_at']) : Carbon::parse($reservation->reservation_at);
+            $reservation_end = isset($validated['reservation_end']) ? Carbon::parse($validated['reservation_end']) : Carbon::parse($reservation->reservation_end);
 
             $overlap = Reservation::where('table_id', $validated['table_id'] ?? $reservation->table_id)
                 ->where('id', '!=', $id)

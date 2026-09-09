@@ -64,6 +64,7 @@ class RolePermissionSeeder extends Seeder
         $cashier->syncPermissions([
             'update_invoice',
             'cancel_invoice',
+            'manage_reservations',
         ]);
 
         $waiter->syncPermissions([

@@ -211,6 +211,9 @@ The cashier role is designed for billing and payment closure. A cashier can perf
 - Apply a discount to an existing invoice: `PUT /admin/invoices/{invoice}` with `discount`
 - Mark an invoice as completed/closed: `PUT /admin/invoices/{invoice}` with `status: "completed"`
 - Cancel an existing invoice: `DELETE /admin/invoices/{invoice}`
+- Create reservations: `POST /admin/reservations`
+- Update reservations: `PUT /admin/reservations/{id}`
+- Delete reservations: `DELETE /admin/reservations/{id}`
 
 The cashier is explicitly forbidden from:
 
@@ -218,7 +221,6 @@ The cashier is explicitly forbidden from:
 - Adding items to an invoice: `POST /admin/invoices/{invoice}/food`
 - Updating invoice item quantity or note: `PUT /admin/invoices/{invoice}/food/{foodItem}`
 - Changing food preparation status: `PATCH /admin/invoices/{invoice}/food/{foodItem}/status`
-- Creating reservations: `POST /admin/reservations`
 - Creating categories: `POST /admin/categories`
 - Creating users: `POST /admin/users`
 - Deleting food items: `DELETE /admin/foods/{id}`

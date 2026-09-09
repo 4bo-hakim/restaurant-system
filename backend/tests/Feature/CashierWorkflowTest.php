@@ -261,19 +261,86 @@ class CashierWorkflowTest extends TestCase
         $response->assertStatus(403, 'A cashier should not be allowed to change food preparation status.');
     }
 
-    public function test_cashier_cannot_create_a_reservation(): void
+    public function test_cashier_can_create_update_and_delete_a_reservation(): void
     {
-        $response = $this->postJson('/api/admin/reservations', [
+        $reservationAt = now()->addDay()->setTime(18, 0, 0);
+        $reservationEnd = $reservationAt->copy()->addHours(2);
+
+        $createResponse = $this->postJson('/api/admin/reservations', [
             'table_id' => $this->table->id,
             'name' => 'Guest Reservation',
             'phone_number' => '+9647700000001',
-            'reservation_at' => now()->addDay()->setTime(18, 0, 0)->toISOString(),
-            'reservation_end' => now()->addDay()->setTime(20, 0, 0)->toISOString(),
+            'reservation_at' => $reservationAt->toISOString(),
+            'reservation_end' => $reservationEnd->toISOString(),
             'guest_count' => 3,
             'status' => 'pending',
         ]);
 
-        $response->assertStatus(403, 'A cashier should not be allowed to create reservations.');
+        $createResponse->assertStatus(201);
+        $reservationId = $createResponse->json('data.id');
+
+        $updateResponse = $this->putJson('/api/admin/reservations/' . $reservationId, [
+            'name' => 'Updated Guest Reservation',
+        ]);
+
+        $updateResponse->assertStatus(200)
+            ->assertJsonPath('data.name', 'Updated Guest Reservation');
+
+        $deleteResponse = $this->deleteJson('/api/admin/reservations/' . $reservationId);
+
+        $deleteResponse->assertStatus(200);
+        $this->assertDatabaseMissing('reservations', ['id' => $reservationId]);
+    }
+
+    public function test_cashier_can_update_details_of_a_past_reservation(): void
+    {
+        $reservationAt = now()->subDay()->setTime(18, 0, 0);
+        $reservation = Reservation::create([
+            'table_id' => $this->table->id,
+            'name' => 'Past Guest',
+            'phone_number' => '+1234567894',
+            'reservation_at' => $reservationAt,
+            'reservation_end' => $reservationAt->copy()->addHours(2),
+            'guest_count' => 8,
+            'status' => 'pending',
+            'created_by' => $this->cashierUser->id,
+        ]);
+
+        $response = $this->putJson('/api/admin/reservations/' . $reservation->id, [
+            'status' => 'confirmed',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.status', 'confirmed');
+    }
+
+    public function test_cashier_can_submit_an_unchanged_past_reservation_form(): void
+    {
+        $reservationAt = now()->subDay()->setTime(18, 0, 37);
+        $reservationEnd = $reservationAt->copy()->addHours(2);
+        $reservation = Reservation::create([
+            'table_id' => $this->table->id,
+            'name' => 'Past Guest',
+            'phone_number' => '+1234567894',
+            'reservation_at' => $reservationAt,
+            'reservation_end' => $reservationEnd,
+            'guest_count' => 8,
+            'status' => 'pending',
+            'created_by' => $this->cashierUser->id,
+        ]);
+
+        $response = $this->putJson('/api/admin/reservations/' . $reservation->id, [
+            'table_id' => $this->table->id,
+            'name' => 'Past Guest',
+            'phone_number' => '+1234567894',
+            'reservation_at' => $reservationAt->copy()->startOfMinute()->toISOString(),
+            'reservation_end' => $reservationEnd->copy()->startOfMinute()->toISOString(),
+            'guest_count' => 8,
+            'status' => 'pending',
+            'note' => null,
+        ]);
+
+        $response->assertStatus(200);
     }
 
     public function test_cashier_cannot_create_a_category(): void
