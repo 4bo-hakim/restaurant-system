@@ -170,29 +170,35 @@ export default function WaiterPage() {
     }
   };
 
-  useEffect(() => {
-    if (step !== "menu" || !selectedTable) return;
-    const checkExistingInvoice = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/admin/invoices`, { headers: authHeaders });
-        if (!res.ok) return;
-        const data = await res.json();
-        const existing = (data.data || []).find(
-          (inv) => inv.table_id === selectedTable && inv.status === "pending"
-        );
-        if (existing) {
-          setInvoicesByTable((prev) => ({ ...prev, [selectedTable]: existing }));
-          await loadSentItems(existing.id);
-        } else {
-          setSentItems([]);
-        }
-      } catch {
-        // silently ignore
+ useEffect(() => {
+  if (step !== "menu" || !selectedTable) return;
+  const checkExistingInvoice = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/invoices`, { headers: authHeaders });
+      if (!res.ok) return;
+      const data = await res.json();
+      const existing = (data.data || []).find(
+        (inv) => inv.table_id === selectedTable && inv.status === "pending"
+      );
+      if (existing) {
+        setInvoicesByTable((prev) => ({ ...prev, [selectedTable]: existing }));
+        await loadSentItems(existing.id);
+      } else {
+        // No pending invoice for this table anymore (paid or cancelled) — clear stale state
+        setInvoicesByTable((prev) => {
+          const updated = { ...prev };
+          delete updated[selectedTable];
+          return updated;
+        });
+        setSentItems([]);
       }
-    };
-    checkExistingInvoice();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, selectedTable]);
+    } catch {
+      // silently ignore
+    }
+  };
+  checkExistingInvoice();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [step, selectedTable]);
 
   const visibleSubCategories = subCategories.filter((s) => s.category_id === activeCategory);
 

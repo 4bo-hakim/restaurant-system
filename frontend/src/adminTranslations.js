@@ -158,6 +158,8 @@ export const adminT = {
     total: { en: "Total", ar: "الإجمالي", ku: "کۆی گشتی" },
     discount: { en: "Discount", ar: "الخصم", ku: "داشکاندن" },
     allInvoices: { en: "Total", ar: "الإجمالي", ku: "کۆی گشتی" },
+    from: { en: "From", ar: "من", ku: "لە" },
+    to: { en: "To", ar: "إلى", ku: "بۆ" },
   },
   
 };
@@ -196,6 +198,7 @@ export const filterT = {
   unavailableOnly: { en: "Unavailable only", ar: "غير المتوفر فقط", ku: "تەنها نەبەردەست" },
   allStatuses: { en: "All statuses", ar: "كل الحالات", ku: "هەموو دۆخەکان" },
   allTables: { en: "All tables", ar: "كل الطاولات", ku: "هەموو مێزەکان" },
+  resetFilter: { en: "Reset filter", ar: "إعادة تعيين الفلتر", ku: "ڕێکخستنەوەی پاڵاوتن" },
 };
 export const errorT = {
   "Failed to load users": { en: "Failed to load users", ar: "فشل تحميل المستخدمين", ku: "بارکردنی بەکارهێنەران سەرکەوتوو نەبوو" },

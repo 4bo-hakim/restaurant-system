@@ -1,10 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../AuthContext";
 import { cashierT, t, CASHIER_LANGUAGES } from "../cashierTranslations";
 import "../styles/CashierPage.css";
 
 const API_BASE = "http://127.0.0.1:8000/api";
-const CASHIER_ICONS = ["💵", "🧾", "💳"];
 const STAGE_ORDER = ["pending", "preparing", "ready"];
 const STATUSES = ["pending", "confirmed", "cancelled", "completed"];
 
@@ -18,7 +17,7 @@ export default function CashierPage() {
   const { user, logout } = useAuth();
   const [lang, setLang] = useState(() => localStorage.getItem("cashierLang") || "en");
   const isRTL = lang === "ar" || lang === "ku";
-  const [tab, setTab] = useState("orders"); // orders | reservations
+  const [section, setSection] = useState("orders"); // orders | reservations
 
   const [tables, setTables] = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -34,28 +33,13 @@ export default function CashierPage() {
     reservation_at: "", reservation_end: "", guest_count: 1, status: "pending", note: "",
   });
   const [editingResId, setEditingResId] = useState(null);
+  const [resSuccess, setResSuccess] = useState("");
+  const resFormRef = useRef(null);
 
   const changeLanguage = (code) => {
     setLang(code);
     localStorage.setItem("cashierLang", code);
   };
-
-  const floatingItems = useMemo(() => {
-    const items = [];
-    CASHIER_ICONS.forEach((icon) => {
-      for (let i = 0; i < 20; i++) {
-        items.push({
-          icon,
-          left: Math.random() * 100,
-          top: Math.random() * 100,
-          duration: 15 + Math.random() * 15,
-          delay: Math.random() * -20,
-          size: 24 + Math.random() * 24,
-        });
-      }
-    });
-    return items;
-  }, []);
 
   const authHeaders = {
     Accept: "application/json",
@@ -150,6 +134,12 @@ export default function CashierPage() {
       .filter((f) => f.status !== "cancelled")
       .reduce((sum, i) => sum + i.quantity * i.unit_price, 0);
 
+  const allItemsReady = (invoice) => {
+    const items = (invoice.invoice_foods || []).filter((f) => f.status !== "cancelled");
+    if (items.length === 0) return false;
+    return items.every((item) => item.status === "ready" || item.status === "served");
+  };
+
   const saveDiscount = async () => {
     if (!selectedInvoice) return;
     setError("");
@@ -169,6 +159,10 @@ export default function CashierPage() {
 
   const markAsPaid = async () => {
     if (!selectedInvoice) return;
+    if (!allItemsReady(selectedInvoice)) {
+      setError(t(cashierT, "notReadyYet", lang));
+      return;
+    }
     if (!window.confirm(t(cashierT, "confirmMarkPaid", lang))) return;
     setError("");
     try {
@@ -220,7 +214,6 @@ export default function CashierPage() {
       let personsHtml = "";
 
       if (bill.persons && bill.persons.length > 0) {
-        // Backend already groups items by person
         personsHtml = bill.persons.map((p) => {
           const itemsHtml = (p.items || [])
             .map((it) => `
@@ -239,7 +232,6 @@ export default function CashierPage() {
           `;
         }).join("");
       } else {
-        // Fallback: build person groups ourselves from the invoice's own item list
         const items = detailedItems(selectedInvoice);
         const grouped = {};
         items.forEach((item) => {
@@ -314,6 +306,7 @@ export default function CashierPage() {
   const handleResSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setResSuccess("");
     try {
       const url = editingResId ? `${API_BASE}/admin/reservations/${editingResId}` : `${API_BASE}/admin/reservations`;
       const method = editingResId ? "PUT" : "POST";
@@ -332,8 +325,11 @@ export default function CashierPage() {
         const errData = await res.json().catch(() => null);
         throw new Error(errData?.message || "Failed to save reservation");
       }
+      const wasEditing = !!editingResId;
       resetResForm();
       fetchReservations();
+      setResSuccess(wasEditing ? t(cashierT, "updateSuccess", lang) : t(cashierT, "addSuccess", lang));
+      setTimeout(() => setResSuccess(""), 3000);
     } catch (err) {
       setError(err.message);
     }
@@ -354,6 +350,7 @@ export default function CashierPage() {
       reservation_at: toLocalInput(r.reservation_at), reservation_end: toLocalInput(r.reservation_end),
       guest_count: r.guest_count, status: r.status, note: r.note || "",
     });
+    resFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const handleResDelete = async (id) => {
@@ -371,34 +368,10 @@ export default function CashierPage() {
   const statusLabel = (status) => t(cashierT, status, lang);
 
   return (
-    <div className="cashier-page" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="floating-background">
-        {floatingItems.map((item, i) => (
-          <span
-            key={i}
-            className="floating-icon"
-            style={{
-              left: `${item.left}%`,
-              top: `${item.top}%`,
-              fontSize: `${item.size}px`,
-              animationDuration: `${item.duration}s`,
-              animationDelay: `${item.delay}s`,
-            }}
-          >
-            {item.icon}
-          </span>
-        ))}
-      </div>
-
-      <div className="cashier-content">
-        <div className="cashier-header">
-          {selectedTable ? (
-            <button className="cashier-back-btn" onClick={closePanel}>← {t(cashierT, "back", lang)}</button>
-          ) : (
-            <button className="cashier-logout-btn cashier-logout-left" onClick={logout}>↩ {t(cashierT, "logout", lang)}</button>
-          )}
-          <h1 className="cashier-title">{t(cashierT, "title", lang)}</h1>
-          <div className="cashier-lang-inline cashier-lang-right">
+    <div className="cashier-layout" dir={isRTL ? "rtl" : "ltr"}>
+      <aside className="cashier-sidebar">
+        <div className="cashier-lang-wrapper">
+          <div className="cashier-lang-inline">
             🌐 {CASHIER_LANGUAGES.map((l, i) => (
               <span key={l.code}>
                 <button className={`cashier-lang-btn ${lang === l.code ? "active" : ""}`} onClick={() => changeLanguage(l.code)}>
@@ -410,94 +383,131 @@ export default function CashierPage() {
           </div>
         </div>
 
-        {!selectedTable && (
-          <div className="cashier-tabs">
-            <button className={`cashier-tab ${tab === "orders" ? "active" : ""}`} onClick={() => setTab("orders")}>
-              {t(cashierT, "ordersTab", lang)}
-            </button>
-            <button className={`cashier-tab ${tab === "reservations" ? "active" : ""}`} onClick={() => setTab("reservations")}>
-              {t(cashierT, "reservationsTab", lang)}
-            </button>
-          </div>
-        )}
+        <div className="cashier-welcome">
+          {t(cashierT, "welcome", lang)}{user?.name ? `, ${user.name}` : ""}
+        </div>
 
+        <div className="cashier-sidebar-items">
+          <div
+            className={`cashier-sidebar-item ${section === "orders" ? "active" : ""}`}
+            onClick={() => { setSection("orders"); closePanel(); }}
+          >
+            <span className="cashier-sidebar-icon">🧾</span>
+            <span>{t(cashierT, "ordersTab", lang)}</span>
+          </div>
+          <div
+            className={`cashier-sidebar-item ${section === "reservations" ? "active" : ""}`}
+            onClick={() => { setSection("reservations"); closePanel(); }}
+          >
+            <span className="cashier-sidebar-icon">📅</span>
+            <span>{t(cashierT, "reservationsTab", lang)}</span>
+          </div>
+        </div>
+
+        <div className="cashier-sidebar-item cashier-logout" onClick={logout}>
+          <span className="cashier-sidebar-icon">↩</span>
+          <span>{t(cashierT, "logout", lang)}</span>
+        </div>
+      </aside>
+
+      <main className="cashier-main">
         {error && <div className="admin-error" style={{ maxWidth: 500, margin: "0 auto 20px" }}>{error}</div>}
 
         {loading ? (
           <p style={{ textAlign: "center" }}>Loading...</p>
         ) : selectedTable ? (
-          <div className="invoice-panel">
-            <h2 className="invoice-panel-title">{t(cashierT, "table", lang)} {selectedTable.table_number}</h2>
-            <p className="invoice-panel-waiter">{t(cashierT, "waiter", lang)}: {selectedInvoice.creator?.name || `User #${selectedInvoice.created_by}`}</p>
+          <div className="cashier-invoice-panel">
+            <button className="cashier-back-btn" onClick={closePanel}>← {t(cashierT, "back", lang)}</button>
+            <h2 className="cashier-invoice-panel-title">{t(cashierT, "table", lang)} {selectedTable.table_number}</h2>
+            <p className="cashier-invoice-panel-waiter">{t(cashierT, "waiter", lang)}: {selectedInvoice.creator?.name || `User #${selectedInvoice.created_by}`}</p>
 
             {detailedItems(selectedInvoice).map((item, index, arr) => {
               const isNewPerson = index > 0 && arr[index - 1].person_number !== item.person_number;
               const isDone = item.status === "ready" || item.status === "served";
               return (
                 <div key={item.id}>
-                  {isNewPerson && <div className="person-divider" />}
-                  <div className={`invoice-item-row ${isDone ? "invoice-item-row-done" : ""}`}>
+                  {isNewPerson && <div className="cashier-person-divider" />}
+                  <div className={`cashier-invoice-item-row ${isDone ? "cashier-invoice-item-row-done" : ""}`}>
                     <span>
-                      {item.name}{item.size && ` (${item.size})`} × {item.quantity} (P{item.person_number})
+                      {item.name}{item.size && ` (${item.size})`} × {item.quantity}
+                      <span className="cashier-person-tag"> — Person {item.person_number}</span>
                     </span>
-                    <span className="invoice-item-dots"></span>
-                    <span className="invoice-item-price">{item.quantity * item.unit_price}</span>
+                    <span className="cashier-invoice-item-dots"></span>
+                    <span className="cashier-invoice-item-price">{item.quantity * item.unit_price}</span>
                   </div>
                 </div>
               );
             })}
 
-            <div className="invoice-totals-row" style={{ marginTop: 16 }}>
+            <div className="cashier-invoice-totals-row" style={{ marginTop: 16 }}>
               <span>{t(cashierT, "subtotal", lang)}</span>
               <span>{subtotal(selectedInvoice)}</span>
             </div>
 
-            <div className="discount-row">
-              <input
-                type="number"
-                min="0"
-                value={discountInput}
-                onChange={(e) => setDiscountInput(e.target.value)}
-                placeholder={t(cashierT, "discount", lang)}
-              />
-              <button className="discount-save-btn" onClick={saveDiscount}>{t(cashierT, "apply", lang)}</button>
+            <div className="cashier-discount-section">
+              <label className="cashier-discount-label">{t(cashierT, "discount", lang)}</label>
+              <div className="cashier-discount-row">
+                <input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value={discountInput}
+                  onChange={(e) => setDiscountInput(e.target.value)}
+                />
+                <button className="cashier-discount-save-btn" onClick={saveDiscount}>{t(cashierT, "apply", lang)}</button>
+              </div>
             </div>
 
-            <div className="invoice-totals">
-              <div className="invoice-totals-row final">
+            <div className="cashier-invoice-totals">
+              <div className="cashier-invoice-totals-row final">
                 <span>{t(cashierT, "totalAfterDiscount", lang)}</span>
                 <span>{selectedInvoice.total}</span>
               </div>
             </div>
 
-            <div className="invoice-actions">
-              <button className="pay-btn" onClick={markAsPaid}>{t(cashierT, "markAsPaid", lang)}</button>
-              <button className="cancel-btn" onClick={cancelOrder}>{t(cashierT, "cancelOrder", lang)}</button>
+            <div className="cashier-invoice-actions">
+              <button
+                className="cashier-pay-btn"
+                onClick={markAsPaid}
+                disabled={!allItemsReady(selectedInvoice)}
+                title={!allItemsReady(selectedInvoice) ? t(cashierT, "notReadyYet", lang) : ""}
+              >
+                {t(cashierT, "markAsPaid", lang)}
+              </button>
+              <button className="cashier-cancel-btn" onClick={cancelOrder}>{t(cashierT, "cancelOrder", lang)}</button>
             </div>
-            <button className="print-bill-btn" onClick={printBill}>🖨️ {t(cashierT, "printBill", lang)}</button>
+            {!allItemsReady(selectedInvoice) && (
+              <p className="cashier-not-ready-note">{t(cashierT, "notReadyYet", lang)}</p>
+            )}
+            <button className="cashier-print-bill-btn" onClick={printBill}>🖨️ {t(cashierT, "printBill", lang)}</button>
           </div>
-        ) : tab === "orders" ? (
-          <div className="grid-boxes">
-            {tables.map((tItem) => {
-              const invoice = invoiceForTable(tItem.id);
-              const status = invoice ? getOverallStatus(invoice) : null;
-              return (
-                <button
-                  key={tItem.id}
-                  className={`grid-box ${status ? `grid-box-${status}` : ""}`}
-                  onClick={() => openTable(tItem)}
-                  disabled={!invoice}
-                >
-                  {tItem.table_number}
-                  {invoice && <span className="grid-box-total">{invoice.total}</span>}
-                </button>
-              );
-            })}
-          </div>
+        ) : section === "orders" ? (
+          <>
+            <h1 className="cashier-title">{t(cashierT, "ordersTab", lang)}</h1>
+            <div className="cashier-grid-boxes">
+              {tables.map((tItem) => {
+                const invoice = invoiceForTable(tItem.id);
+                const status = invoice ? getOverallStatus(invoice) : null;
+                return (
+                  <button
+                    key={tItem.id}
+                    className={`cashier-grid-box ${status ? `cashier-grid-box-${status}` : ""}`}
+                    onClick={() => openTable(tItem)}
+                    disabled={!invoice}
+                  >
+                    {tItem.table_number}
+                    {invoice && <span className="cashier-grid-box-total">{invoice.total}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </>
         ) : (
           <>
-            <form className="cashier-form" onSubmit={handleResSubmit}>
+            <h1 className="cashier-title">{t(cashierT, "reservationsTab", lang)}</h1>
+            <form className="cashier-form" onSubmit={handleResSubmit} ref={resFormRef}>
               <h2>{editingResId ? t(cashierT, "updateReservation", lang) : t(cashierT, "addNew", lang)}</h2>
+              {resSuccess && <div className="cashier-success">{resSuccess}</div>}
               <div className="cashier-form-row">
                 <input placeholder={t(cashierT, "guestName", lang)} value={resForm.name} onChange={(e) => setResForm({ ...resForm, name: e.target.value })} required />
                 <select value={resForm.table_id} onChange={(e) => setResForm({ ...resForm, table_id: e.target.value })} required>
@@ -509,9 +519,15 @@ export default function CashierPage() {
                 <input placeholder={t(cashierT, "phoneNumber", lang)} value={resForm.phone_number} onChange={(e) => setResForm({ ...resForm, phone_number: e.target.value })} required />
                 <input type="number" min="1" max="50" placeholder={t(cashierT, "guestCount", lang)} value={resForm.guest_count} onChange={(e) => setResForm({ ...resForm, guest_count: e.target.value })} required />
               </div>
-              <div className="cashier-form-row">
-                <input type="datetime-local" value={resForm.reservation_at} onChange={(e) => setResForm({ ...resForm, reservation_at: e.target.value })} required />
-                <input type="datetime-local" value={resForm.reservation_end} onChange={(e) => setResForm({ ...resForm, reservation_end: e.target.value })} required />
+              <div className="cashier-form-row cashier-date-range-row">
+                <div className="cashier-date-input-group">
+                  <label className="cashier-date-input-label">{t(cashierT, "start", lang)}</label>
+                  <input type="datetime-local" value={resForm.reservation_at} onChange={(e) => setResForm({ ...resForm, reservation_at: e.target.value })} required />
+                </div>
+                <div className="cashier-date-input-group">
+                  <label className="cashier-date-input-label">{t(cashierT, "end", lang)}</label>
+                  <input type="datetime-local" value={resForm.reservation_end} onChange={(e) => setResForm({ ...resForm, reservation_end: e.target.value })} required />
+                </div>
               </div>
               <div className="cashier-form-row">
                 <select value={resForm.status} onChange={(e) => setResForm({ ...resForm, status: e.target.value })}>
@@ -559,7 +575,7 @@ export default function CashierPage() {
             </div>
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 }

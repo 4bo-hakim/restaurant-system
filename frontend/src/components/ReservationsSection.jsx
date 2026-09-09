@@ -21,14 +21,18 @@ export default function ReservationsSection({ authHeaders, lang }) {
 
   const jsonHeaders = { ...authHeaders, "Content-Type": "application/json" };
 
-  const fetchData = async () => {
+  const fetchData = async (overrides = {}) => {
     setLoading(true);
     setError("");
     try {
+      const status = overrides.status !== undefined ? overrides.status : filterStatus;
+      const tableId = overrides.tableId !== undefined ? overrides.tableId : filterTable;
+      const date = overrides.date !== undefined ? overrides.date : filterDate;
+
       const params = new URLSearchParams();
-      if (filterStatus) params.append("status", filterStatus);
-      if (filterTable) params.append("table_id", filterTable);
-      if (filterDate) params.append("date", filterDate);
+      if (status) params.append("status", status);
+      if (tableId) params.append("table_id", tableId);
+      if (date) params.append("date", date);
 
       const [resRes, tableRes] = await Promise.all([
         fetch(`${API_BASE}/admin/reservations?${params.toString()}`, { headers: authHeaders }),
@@ -44,6 +48,13 @@ export default function ReservationsSection({ authHeaders, lang }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetFilters = () => {
+    setFilterStatus("");
+    setFilterTable("");
+    setFilterDate("");
+    fetchData({ status: "", tableId: "", date: "" });
   };
 
   useEffect(() => {
@@ -141,9 +152,15 @@ export default function ReservationsSection({ authHeaders, lang }) {
           <input placeholder={t(adminT.reservations, "phoneNumber", lang)} value={form.phone_number} onChange={(e) => setForm({ ...form, phone_number: e.target.value })} required />
           <input type="number" min="1" max="50" placeholder={t(adminT.reservations, "guestCount", lang)} value={form.guest_count} onChange={(e) => setForm({ ...form, guest_count: e.target.value })} required />
         </div>
-        <div className="admin-form-row">
-          <input type="datetime-local" value={form.reservation_at} onChange={(e) => setForm({ ...form, reservation_at: e.target.value })} required />
-          <input type="datetime-local" value={form.reservation_end} onChange={(e) => setForm({ ...form, reservation_end: e.target.value })} required />
+        <div className="admin-form-row date-range-row">
+          <div className="date-input-group">
+            <label className="date-input-label">{t(adminT.reservations, "start", lang)}</label>
+            <input type="datetime-local" value={form.reservation_at} onChange={(e) => setForm({ ...form, reservation_at: e.target.value })} required />
+          </div>
+          <div className="date-input-group">
+            <label className="date-input-label">{t(adminT.reservations, "end", lang)}</label>
+            <input type="datetime-local" value={form.reservation_end} onChange={(e) => setForm({ ...form, reservation_end: e.target.value })} required />
+          </div>
         </div>
         <div className="admin-form-row">
           <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
@@ -173,7 +190,8 @@ export default function ReservationsSection({ authHeaders, lang }) {
           <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} />
         </div>
         <div className="admin-form-actions">
-          <button className="admin-btn-primary" onClick={fetchData}>{t(adminT.common, "apply", lang)}</button>
+          <button className="admin-btn-primary" onClick={() => fetchData()}>{t(adminT.common, "apply", lang)}</button>
+          <button className="admin-btn-secondary" onClick={resetFilters}>{t(filterT, "resetFilter", lang)}</button>
         </div>
       </div>
 

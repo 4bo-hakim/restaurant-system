@@ -24,14 +24,18 @@ export default function FoodsSection({ authHeaders, lang }) {
   const [editingId, setEditingId] = useState(null);
   const formRef = useRef(null);
 
-  const fetchData = async (targetPage = page) => {
+  const fetchData = async (targetPage = page, overrides = {}) => {
     setLoading(true);
     setError("");
     try {
+      const searchVal = overrides.search !== undefined ? overrides.search : search;
+      const subCat = overrides.subCategory !== undefined ? overrides.subCategory : filterSubCategory;
+      const available = overrides.available !== undefined ? overrides.available : filterAvailable;
+
       const params = new URLSearchParams({ page: targetPage });
-      if (search) params.append("search", search);
-      if (filterSubCategory) params.append("sub_category_id", filterSubCategory);
-      if (filterAvailable) params.append("is_available", filterAvailable);
+      if (searchVal) params.append("search", searchVal);
+      if (subCat) params.append("sub_category_id", subCat);
+      if (available) params.append("is_available", available);
 
       const [foodRes, subRes] = await Promise.all([
         fetch(`${API_BASE}/admin/foods?${params.toString()}`, { headers: authHeaders }),
@@ -60,6 +64,13 @@ export default function FoodsSection({ authHeaders, lang }) {
 
   const applyFilters = () => {
     fetchData(1);
+  };
+
+  const resetFilters = () => {
+    setSearch("");
+    setFilterSubCategory("");
+    setFilterAvailable("");
+    fetchData(1, { search: "", subCategory: "", available: "" });
   };
 
   const goToPage = (p) => {
@@ -183,7 +194,7 @@ export default function FoodsSection({ authHeaders, lang }) {
 
         <div className="admin-form-row">
           <input placeholder={t(adminT.foods, "size", lang)} value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
-          <input type="number" placeholder={t(adminT.foods, "price", lang)} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
+          <input type="number" step="1000" placeholder={t(adminT.foods, "price", lang)} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
         </div>
 
         <div className="admin-form-row available-row">
@@ -226,6 +237,7 @@ export default function FoodsSection({ authHeaders, lang }) {
         </div>
         <div className="admin-form-actions">
           <button className="admin-btn-primary" onClick={applyFilters}>{t(adminT.common, "apply", lang)}</button>
+          <button className="admin-btn-secondary" onClick={resetFilters}>{t(filterT, "resetFilter", lang)}</button>
         </div>
       </div>
 
