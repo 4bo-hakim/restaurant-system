@@ -22,7 +22,6 @@ export default function CashierPage() {
 
   const [tables, setTables] = useState([]);
   const [invoices, setInvoices] = useState([]);
-  const [users, setUsers] = useState([]);
   const [selectedTableId, setSelectedTableId] = useState(null);
   const [discountInput, setDiscountInput] = useState("");
   const [error, setError] = useState("");
@@ -89,17 +88,6 @@ export default function CashierPage() {
     }
   };
 
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/admin/users`, { headers: authHeaders });
-      if (!res.ok) return;
-      const data = await res.json();
-      setUsers(data.data?.data || data.data || []);
-    } catch {
-      // ignore silently
-    }
-  };
-
   const fetchReservations = async () => {
     try {
       const res = await fetch(`${API_BASE}/admin/reservations`, { headers: authHeaders });
@@ -113,13 +101,11 @@ export default function CashierPage() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchTables(), fetchInvoices(), fetchUsers(), fetchReservations()]).finally(() => setLoading(false));
+    Promise.all([fetchTables(), fetchInvoices(), fetchReservations()]).finally(() => setLoading(false));
     const interval = setInterval(fetchInvoices, 5000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const waiterName = (id) => users.find((u) => u.id === id)?.name || `User #${id}`;
 
   const getOverallStatus = (invoice) => {
     const items = (invoice.invoice_foods || []).filter((f) => f.status !== "cancelled" && f.status !== "served");
@@ -233,55 +219,55 @@ export default function CashierPage() {
 
       let personsHtml = "";
 
-if (bill.persons && bill.persons.length > 0) {
-  // Backend already groups items by person
-  personsHtml = bill.persons.map((p) => {
-    const itemsHtml = (p.items || [])
-      .map((it) => `
-        <div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0;">
-          <span>${it.name || it.food_name}${it.size ? ` (${it.size})` : ""} × ${it.quantity}</span>
-          <span>${it.line_total ?? (it.unit_price * it.quantity)}</span>
-        </div>
-      `)
-      .join("");
-    return `
-      <div style="margin-bottom:12px;">
-        <div style="font-weight:bold;font-size:13px;border-bottom:1px solid #ccc;margin-bottom:4px;">Person ${p.person_number}</div>
-        ${itemsHtml}
-        <div style="text-align:right;font-size:12px;color:#555;margin-top:2px;">Subtotal: ${p.subtotal}</div>
-      </div>
-    `;
-  }).join("");
-} else {
-  // Fallback: build person groups ourselves from the invoice's own item list
-  const items = detailedItems(selectedInvoice);
-  const grouped = {};
-  items.forEach((item) => {
-    if (!grouped[item.person_number]) grouped[item.person_number] = [];
-    grouped[item.person_number].push(item);
-  });
+      if (bill.persons && bill.persons.length > 0) {
+        // Backend already groups items by person
+        personsHtml = bill.persons.map((p) => {
+          const itemsHtml = (p.items || [])
+            .map((it) => `
+              <div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0;">
+                <span>${it.name || it.food_name}${it.size ? ` (${it.size})` : ""} × ${it.quantity}</span>
+                <span>${it.line_total ?? (it.unit_price * it.quantity)}</span>
+              </div>
+            `)
+            .join("");
+          return `
+            <div style="margin-bottom:12px;">
+              <div style="font-weight:bold;font-size:13px;border-bottom:1px solid #ccc;margin-bottom:4px;">Person ${p.person_number}</div>
+              ${itemsHtml}
+              <div style="text-align:right;font-size:12px;color:#555;margin-top:2px;">Subtotal: ${p.subtotal}</div>
+            </div>
+          `;
+        }).join("");
+      } else {
+        // Fallback: build person groups ourselves from the invoice's own item list
+        const items = detailedItems(selectedInvoice);
+        const grouped = {};
+        items.forEach((item) => {
+          if (!grouped[item.person_number]) grouped[item.person_number] = [];
+          grouped[item.person_number].push(item);
+        });
 
-  personsHtml = Object.entries(grouped)
-    .map(([personNum, personItems]) => {
-      const itemsHtml = personItems
-        .map((it) => `
-          <div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0;">
-            <span>${it.name}${it.size ? ` (${it.size})` : ""} × ${it.quantity}</span>
-            <span>${it.quantity * it.unit_price}</span>
-          </div>
-        `)
-        .join("");
-      const personSubtotal = personItems.reduce((sum, it) => sum + it.quantity * it.unit_price, 0);
-      return `
-        <div style="margin-bottom:12px;">
-          <div style="font-weight:bold;font-size:13px;border-bottom:1px solid #ccc;margin-bottom:4px;">Person ${personNum}</div>
-          ${itemsHtml}
-          <div style="text-align:right;font-size:12px;color:#555;margin-top:2px;">Subtotal: ${personSubtotal}</div>
-        </div>
-      `;
-    })
-    .join("");
-}
+        personsHtml = Object.entries(grouped)
+          .map(([personNum, personItems]) => {
+            const itemsHtml = personItems
+              .map((it) => `
+                <div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0;">
+                  <span>${it.name}${it.size ? ` (${it.size})` : ""} × ${it.quantity}</span>
+                  <span>${it.quantity * it.unit_price}</span>
+                </div>
+              `)
+              .join("");
+            const personSubtotal = personItems.reduce((sum, it) => sum + it.quantity * it.unit_price, 0);
+            return `
+              <div style="margin-bottom:12px;">
+                <div style="font-weight:bold;font-size:13px;border-bottom:1px solid #ccc;margin-bottom:4px;">Person ${personNum}</div>
+                ${itemsHtml}
+                <div style="text-align:right;font-size:12px;color:#555;margin-top:2px;">Subtotal: ${personSubtotal}</div>
+              </div>
+            `;
+          })
+          .join("");
+      }
 
       printWindow.document.write(`
         <html>
@@ -298,7 +284,7 @@ if (bill.persons && bill.persons.length > 0) {
           </head>
           <body>
             <h2>${t(cashierT, "table", lang)} ${bill.table?.table_number || selectedTable?.table_number || ""}</h2>
-            <div class="meta">${t(cashierT, "waiter", lang)}: ${bill.served_by || waiterName(selectedInvoice.created_by)}<br/>${new Date().toLocaleString()}</div>
+            <div class="meta">${t(cashierT, "waiter", lang)}: ${bill.served_by || selectedInvoice.creator?.name || `User #${selectedInvoice.created_by}`}<br/>${new Date().toLocaleString()}</div>
             <hr />
             ${personsHtml}
             <hr />
@@ -436,7 +422,7 @@ if (bill.persons && bill.persons.length > 0) {
         ) : selectedTable ? (
           <div className="invoice-panel">
             <h2 className="invoice-panel-title">{t(cashierT, "table", lang)} {selectedTable.table_number}</h2>
-            <p className="invoice-panel-waiter">{t(cashierT, "waiter", lang)}: {waiterName(selectedInvoice.created_by)}</p>
+            <p className="invoice-panel-waiter">{t(cashierT, "waiter", lang)}: {selectedInvoice.creator?.name || `User #${selectedInvoice.created_by}`}</p>
 
             {detailedItems(selectedInvoice).map((item, index, arr) => {
               const isNewPerson = index > 0 && arr[index - 1].person_number !== item.person_number;
@@ -486,17 +472,17 @@ if (bill.persons && bill.persons.length > 0) {
           </div>
         ) : tab === "orders" ? (
           <div className="grid-boxes">
-            {tables.map((t) => {
-              const invoice = invoiceForTable(t.id);
+            {tables.map((tItem) => {
+              const invoice = invoiceForTable(tItem.id);
               const status = invoice ? getOverallStatus(invoice) : null;
               return (
                 <button
-                  key={t.id}
+                  key={tItem.id}
                   className={`grid-box ${status ? `grid-box-${status}` : ""}`}
-                  onClick={() => openTable(t)}
+                  onClick={() => openTable(tItem)}
                   disabled={!invoice}
                 >
-                  {t.table_number}
+                  {tItem.table_number}
                   {invoice && <span className="grid-box-total">{invoice.total}</span>}
                 </button>
               );

@@ -24,7 +24,6 @@ export default function ChefPage() {
   const [tab, setTab] = useState("queue"); // queue | availability
   const [invoices, setInvoices] = useState([]);
   const [foods, setFoods] = useState([]);
-  const [users, setUsers] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
@@ -103,17 +102,6 @@ export default function ChefPage() {
     }
   };
 
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/admin/users`, { headers: authHeaders });
-      if (!res.ok) return;
-      const data = await res.json();
-      setUsers(data.data?.data || data.data || []);
-    } catch {
-      // ignore silently
-    }
-  };
-
   const fetchCategories = async () => {
     try {
       const res = await fetch(`${API_BASE}/admin/categories`, { headers: authHeaders });
@@ -138,7 +126,7 @@ export default function ChefPage() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchQueue(), fetchFoods(), fetchUsers(), fetchCategories(), fetchSubCategories()]).finally(() =>
+    Promise.all([fetchQueue(), fetchFoods(), fetchCategories(), fetchSubCategories()]).finally(() =>
       setLoading(false)
     );
     const interval = setInterval(fetchQueue, 8000);
@@ -203,8 +191,6 @@ export default function ChefPage() {
       }
     };
   }, []);
-
-  const waiterName = (id) => users.find((u) => u.id === id)?.name || `User #${id}`;
 
   const printOrderTicket = (tableLabel, waiterForTable, summary) => {
     const printWindow = window.open("", "_blank", "width=400,height=600");
@@ -304,7 +290,7 @@ export default function ChefPage() {
         ...f,
         invoiceId: inv.id,
         tableNumber: inv.table?.table_number,
-        waiterName: waiterName(inv.created_by),
+        waiterName: inv.creator?.name || `User #${inv.created_by}`,
         foodName: getLocalized(f.food?.name),
         foodSize: f.food?.size || null,
       }))
