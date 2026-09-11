@@ -12,10 +12,13 @@ export default function InvoicesSection({ authHeaders, lang }) {
   const [filterTable, setFilterTable] = useState("");
   const [filterFrom, setFilterFrom] = useState("");
   const [filterTo, setFilterTo] = useState("");
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const jsonHeaders = { ...authHeaders, "Content-Type": "application/json" };
 
-  const fetchData = async (overrides = {}) => {
+  const fetchData = async (targetPage = page, overrides = {}) => {
     setLoading(true);
     setError("");
     try {
@@ -24,7 +27,7 @@ export default function InvoicesSection({ authHeaders, lang }) {
       const from = overrides.from !== undefined ? overrides.from : filterFrom;
       const to = overrides.to !== undefined ? overrides.to : filterTo;
 
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({ page: targetPage });
       if (status) params.append("status", status);
       if (tableId) params.append("table_id", tableId);
       if (from) params.append("from", from);
@@ -37,7 +40,11 @@ export default function InvoicesSection({ authHeaders, lang }) {
       if (!invRes.ok || !tableRes.ok) throw new Error("Failed to load data");
       const invData = await invRes.json();
       const tableData = await tableRes.json();
+
       setInvoices(invData.data?.data || invData.data || []);
+      setPage(invData.data?.current_page || 1);
+      setLastPage(invData.data?.last_page || 1);
+      setTotal(invData.data?.total ?? (invData.data?.length || 0));
       setTables(tableData.data?.data || tableData.data || []);
     } catch (err) {
       setError(err.message);
@@ -51,11 +58,16 @@ export default function InvoicesSection({ authHeaders, lang }) {
     setFilterTable("");
     setFilterFrom("");
     setFilterTo("");
-    fetchData({ status: "", tableId: "", from: "", to: "" });
+    fetchData(1, { status: "", tableId: "", from: "", to: "" });
+  };
+
+  const goToPage = (p) => {
+    if (p < 1 || p > lastPage) return;
+    fetchData(p);
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -64,7 +76,7 @@ export default function InvoicesSection({ authHeaders, lang }) {
     try {
       const res = await fetch(`${API_BASE}/admin/invoices/${id}`, { method: "PUT", headers: jsonHeaders, body: JSON.stringify({ status }) });
       if (!res.ok) throw new Error("Failed to update invoice");
-      fetchData();
+      fetchData(page);
     } catch (err) {
       setError(err.message);
     }
@@ -105,40 +117,51 @@ export default function InvoicesSection({ authHeaders, lang }) {
           </div>
         </div>
         <div className="admin-form-actions">
-          <button className="admin-btn-primary" onClick={() => fetchData()}>{t(adminT.common, "apply", lang)}</button>
+          <button className="admin-btn-primary" onClick={() => fetchData(1)}>{t(adminT.common, "apply", lang)}</button>
           <button className="admin-btn-secondary" onClick={resetFilters}>{t(filterT, "resetFilter", lang)}</button>
         </div>
       </div>
 
-      {loading ? <p>{t(adminT.common, "loading", lang)}</p> : (
-        <div className="admin-table-wrapper">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>{t(adminT.reservations, "table", lang)}</th>
-                <th>{t(adminT.reservations, "status", lang)}</th>
-                <th>{t(adminT.invoices, "discount", lang)}</th>
-                <th>{t(adminT.invoices, "total", lang)}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id}>
-                  <td>{inv.table?.table_number || tableNumber(inv.table_id)}</td>
-                  <td>
-                    <select value={inv.status} onChange={(e) => updateStatus(inv.id, e.target.value)}>
-                      <option value="pending">{t(adminT.dashboard, "pending", lang)}</option>
-                      <option value="completed">{t(adminT.dashboard, "completed", lang)}</option>
-                      <option value="cancelled">{t(adminT.dashboard, "cancelled", lang)}</option>
-                    </select>
-                  </td>
-                  <td>{inv.discount}</td>
-                  <td>{inv.total}</td>
+      {loading ? (
+        <p>{t(adminT.common, "loading", lang)}</p>
+      ) : (
+        <>
+          <p style={{ textAlign: "center", color: "#888", marginBottom: 10 }}>{t(adminT.invoices, "allInvoices", lang)}: {total}</p>
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>{t(adminT.reservations, "table", lang)}</th>
+                  <th>{t(adminT.reservations, "status", lang)}</th>
+                  <th>{t(adminT.invoices, "discount", lang)}</th>
+                  <th>{t(adminT.invoices, "total", lang)}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {invoices.map((inv) => (
+                  <tr key={inv.id}>
+                    <td>{inv.table?.table_number || tableNumber(inv.table_id)}</td>
+                    <td>
+                      <select value={inv.status} onChange={(e) => updateStatus(inv.id, e.target.value)}>
+                        <option value="pending">{t(adminT.dashboard, "pending", lang)}</option>
+                        <option value="completed">{t(adminT.dashboard, "completed", lang)}</option>
+                        <option value="cancelled">{t(adminT.dashboard, "cancelled", lang)}</option>
+                      </select>
+                    </td>
+                    <td>{inv.discount}</td>
+                    <td>{inv.total}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="pagination-controls">
+            <button className="pagination-btn" onClick={() => goToPage(page - 1)} disabled={page <= 1}>← Previous</button>
+            <span className="pagination-info">{page} / {lastPage}</span>
+            <button className="pagination-btn" onClick={() => goToPage(page + 1)} disabled={page >= lastPage}>Next →</button>
+          </div>
+        </>
       )}
     </>
   );
