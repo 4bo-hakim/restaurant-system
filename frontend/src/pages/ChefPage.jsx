@@ -5,7 +5,6 @@ import "../styles/ChefPage.css";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 const KITCHEN_ICONS = ["👨‍🍳", "🍳", "🔪"];
-const STAGE_ORDER = ["pending", "preparing"];
 const NEXT_STATUS = {
   pending: "preparing",
   preparing: "ready",
@@ -251,7 +250,7 @@ export default function ChefPage() {
     printWindow.print();
   };
 
-  const advanceAllInTable = async (items, tableLabel, waiterForTable, summary, wasPending) => {
+  const advanceGroup = async (items, tableLabel, waiterForTable, summary, isPendingGroup) => {
     setError("");
     try {
       for (const item of items) {
@@ -266,9 +265,9 @@ export default function ChefPage() {
         if (!res.ok) throw new Error(data?.message || "Failed to update status");
       }
 
-      if (wasPending) {
+      if (isPendingGroup) {
         printOrderTicket(tableLabel, waiterForTable, summary);
-        // Chef acknowledged this table's order — stop the alert for it
+        // Chef acknowledged the new items for this table — stop the alert for it
         setAlertTables((prev) => {
           const updated = new Set(prev);
           updated.delete(tableLabel);
@@ -331,15 +330,6 @@ export default function ChefPage() {
       }
     });
     return Object.entries(summary);
-  };
-
-  const getOverallStatus = (items) => {
-    let lowestIndex = STAGE_ORDER.length - 1;
-    items.forEach((item) => {
-      const idx = STAGE_ORDER.indexOf(item.status);
-      if (idx !== -1 && idx < lowestIndex) lowestIndex = idx;
-    });
-    return STAGE_ORDER[lowestIndex];
   };
 
   const visibleSubCategories = subCategories.filter((s) => s.category_id === activeCategory);
@@ -408,9 +398,9 @@ export default function ChefPage() {
             <p className="empty-queue">{t(chefT, "noActiveOrders", lang)}</p>
           ) : (
             Object.entries(groupedByTable).map(([tableLabel, items]) => {
-              const summary = buildSummary(items);
-              const overallStatus = getOverallStatus(items);
-              const buttonLabel = overallStatus === "pending" || overallStatus === "preparing";
+              const pendingItems = items.filter((i) => i.status === "pending");
+              const preparingItems = items.filter((i) => i.status === "preparing");
+              const overallStatus = pendingItems.length > 0 ? "pending" : "preparing";
               const waiterForTable = items[0]?.waiterName;
 
               return (
@@ -426,30 +416,60 @@ export default function ChefPage() {
                     <div className="table-header-waiter">{t(chefT, "waiter", lang)}: {waiterForTable}</div>
                   </div>
 
-                  <div className="table-summary">
-                    {summary.map(([name, data]) => (
-                      <div key={name} className="table-summary-block">
-                        <div className="table-summary-row">
-                          <span>{name}</span>
-                          <span className="table-summary-dots"></span>
-                          <span className="table-summary-qty">× {data.quantity}</span>
-                        </div>
-                        {data.notes.map((n, i) => (
-                          <div key={i} className="table-summary-note">
-                            P{n.person}: {n.note}
+                  {pendingItems.length > 0 && (
+                    <div className="order-batch order-batch-new">
+                      <div className="order-batch-label">{t(chefT, "newOrder", lang)}</div>
+                      <div className="table-summary">
+                        {buildSummary(pendingItems).map(([name, data]) => (
+                          <div key={name} className="table-summary-block">
+                            <div className="table-summary-row">
+                              <span>{name}</span>
+                              <span className="table-summary-dots"></span>
+                              <span className="table-summary-qty">× {data.quantity}</span>
+                            </div>
+                            {data.notes.map((n, i) => (
+                              <div key={i} className="table-summary-note">
+                                P{n.person}: {n.note}
+                              </div>
+                            ))}
                           </div>
                         ))}
                       </div>
-                    ))}
-                  </div>
+                      <button
+                        className="advance-all-btn"
+                        onClick={() => advanceGroup(pendingItems, tableLabel, waiterForTable, buildSummary(pendingItems), true)}
+                      >
+                        {t(chefT, "makeAllPreparing", lang)}
+                      </button>
+                    </div>
+                  )}
 
-                  {buttonLabel && (
-                    <button
-                      className="advance-all-btn"
-                      onClick={() => advanceAllInTable(items, tableLabel, waiterForTable, summary, overallStatus === "pending")}
-                    >
-                      {overallStatus === "pending" ? t(chefT, "makeAllPreparing", lang) : t(chefT, "markAllReady", lang)}
-                    </button>
+                  {preparingItems.length > 0 && (
+                    <div className="order-batch order-batch-progress">
+                      <div className="order-batch-label">{t(chefT, "inProgress", lang)}</div>
+                      <div className="table-summary">
+                        {buildSummary(preparingItems).map(([name, data]) => (
+                          <div key={name} className="table-summary-block">
+                            <div className="table-summary-row">
+                              <span>{name}</span>
+                              <span className="table-summary-dots"></span>
+                              <span className="table-summary-qty">× {data.quantity}</span>
+                            </div>
+                            {data.notes.map((n, i) => (
+                              <div key={i} className="table-summary-note">
+                                P{n.person}: {n.note}
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        className="advance-all-btn"
+                        onClick={() => advanceGroup(preparingItems, tableLabel, waiterForTable, buildSummary(preparingItems), false)}
+                      >
+                        {t(chefT, "markAllReady", lang)}
+                      </button>
+                    </div>
                   )}
                 </div>
               );
