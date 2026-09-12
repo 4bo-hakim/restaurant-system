@@ -22,4 +22,6 @@ export const chefT = {
   sentBy: { en: "Sent by", ar: "أُرسل من قبل", ku: "لەلایەن نێردراوە" },
   allCategories: { en: "All categories", ar: "كل الفئات", ku: "هەموو پۆلەکان" },
   allSubCategories: { en: "All sub-categories", ar: "كل الفئات الفرعية", ku: "هەموو ژێرپۆلەکان" },
+  newOrder: { en: "New order", ar: "طلب جديد", ku: "داواکاری نوێ" },
+inProgress: { en: "In progress", ar: "قيد التنفيذ", ku: "لە جێبەجێکردندا" },
 };

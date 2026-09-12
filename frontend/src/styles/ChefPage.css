@@ -377,3 +377,35 @@
 .table-group-alerting {
   box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.7);
 }
+.order-batch {
+  margin-bottom: 14px;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.order-batch-new {
+  background-color: #fff8ec;
+  border: 1px solid #ffdca3;
+}
+
+.order-batch-progress {
+  background-color: #eef6fc;
+  border: 1px solid #b9dcf2;
+}
+
+.order-batch-label {
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  color: #888;
+}
+
+.order-batch-new .order-batch-label {
+  color: #a65f00;
+}
+
+.order-batch-progress .order-batch-label {
+  color: #1c5c85;
+}
